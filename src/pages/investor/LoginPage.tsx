@@ -1,17 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useInvestorLogin } from "../../features/auth/hooks/useInvestorLogin";
 import loginLogo from "../../assets/LoginLogo.svg";
 import wordmark from "../../assets/MALLAGE_LoginPage.svg";
 
-interface LoginPageProps {
-  isPending?: boolean;
-  errorMessage?: string;
-}
-
-export default function LoginPage({
-  isPending = false,
-  errorMessage,
-}: LoginPageProps) {
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, resetError, isPending, errorMessage } = useInvestorLogin();
   const [code, setCode] = useState("");
   const [hasCodeError, setHasCodeError] = useState(false);
   const displayedError = hasCodeError
@@ -46,7 +41,13 @@ export default function LoginPage({
           onSubmit={(event) => {
             event.preventDefault();
             if (!isPending) {
-              setHasCodeError(!/^[0-9]{4}$/.test(code));
+              const isValid = /^[0-9]{4}$/.test(code);
+              setHasCodeError(!isValid);
+              if (isValid) {
+                login(code, {
+                  onSuccess: () => navigate("/invest", { replace: true }),
+                });
+              }
             }
           }}
         >
@@ -66,6 +67,7 @@ export default function LoginPage({
             onChange={(event) => {
               setCode(event.target.value.replace(/[^0-9]/g, ""));
               setHasCodeError(false);
+              resetError();
             }}
             disabled={isPending}
             aria-invalid={Boolean(displayedError)}

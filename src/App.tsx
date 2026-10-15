@@ -1,12 +1,18 @@
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/investor/LoginPage";
+import HomePage from "./pages/investor/HomePage";
+import InvestorProtectedRoute from "./features/auth/components/InvestorProtectedRoute";
 
 function App() {
   return (
     <Routes>
       {/* 투자자 */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/invest" element={<div>투자 홈</div>} />
+      <Route element={<InvestorProtectedRoute guestOnly />}>
+        <Route path="/login" element={<LoginPage />} />
+      </Route>
+      <Route element={<InvestorProtectedRoute />}>
+        <Route path="/invest" element={<HomePage />} />
+      </Route>
 
       {/* 관리자 */}
       <Route path="/admin/login" element={<div>관리자 로그인</div>} />
