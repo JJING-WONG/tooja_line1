@@ -57,6 +57,7 @@ MALLAGE는 1호선톤 해커톤에서 사용하는 가상 투자 서비스입니
 
 ## 6. 개발 규칙
 
+- 글꼴은 영어에 Anta, 한글에 Noto Sans KR을 사용합니다. 기본 font-family 순서는 "Anta", "Noto Sans KR", sans-serif이며, 이후 UI 작업에서도 유지합니다.
 - TypeScript 타입 안정성을 유지합니다.
 - 불필요한 any 사용을 지양합니다.
 - 기존 코드와 네이밍 컨벤션을 따릅니다.

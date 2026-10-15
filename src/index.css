@@ -1,1 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Anta&family=Noto+Sans+KR:wght@100..900&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Anta", "Noto Sans KR", sans-serif;
+  --color-primary: #7886fc;
+  --color-secondary: #5758af;
+  --color-background: #f7f7f7;
+  --color-dark: #202338;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+  }
+}

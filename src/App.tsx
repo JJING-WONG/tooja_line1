@@ -1,10 +1,11 @@
 import { Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/investor/LoginPage";
 
 function App() {
   return (
     <Routes>
       {/* 투자자 */}
-      <Route path="/login" element={<div>투자자 로그인</div>} />
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/invest" element={<div>투자 홈</div>} />
 
       {/* 관리자 */}
