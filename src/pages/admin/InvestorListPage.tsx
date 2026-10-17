@@ -1,0 +1,254 @@
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+
+// A03 시안의 6개 행입니다. 실제 목록·전체 건수·자동 갱신은 API 연결 시 교체합니다.
+const previewInvestors = [
+  {
+    id: "preview-participant-004",
+    alias: "팀 01 투자자 004",
+    kind: "PARTICIPANT",
+    teamId: 1,
+    investedAmount: 700000,
+  },
+  {
+    id: "preview-participant-012",
+    alias: "팀 03 투자자 012",
+    kind: "PARTICIPANT",
+    teamId: 3,
+    investedAmount: 700000,
+  },
+  {
+    id: "preview-participant-002",
+    alias: "팀 07 투자자 002",
+    kind: "PARTICIPANT",
+    teamId: 7,
+    investedAmount: 0,
+  },
+  {
+    id: "preview-participant-005",
+    alias: "팀 12 투자자 005",
+    kind: "PARTICIPANT",
+    teamId: 12,
+    investedAmount: 900000,
+  },
+  {
+    id: "preview-staff-003",
+    alias: "운영팀 투자자 003",
+    kind: "STAFF",
+    teamId: null,
+    investedAmount: 500000,
+  },
+  {
+    id: "preview-staff-008",
+    alias: "운영팀 투자자 008",
+    kind: "STAFF",
+    teamId: null,
+    investedAmount: 600000,
+  },
+];
+
+const spendingFilters = [
+  { value: "ALL", label: "전체", width: "w-15" },
+  { value: "UNSPENT", label: "미소진", width: "w-18" },
+  { value: "COMPLETED", label: "소진 완료", width: "w-[87px]" },
+];
+
+export default function InvestorListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const query = searchParams.get("q") ?? "";
+  const teamId = searchParams.get("teamId") ?? "";
+  const kind = searchParams.get("kind") ?? "";
+  const spendingStatus = searchParams.get("spendingStatus") ?? "UNSPENT";
+
+  function updateFilter(name: string, value: string) {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value) next.set(name, value);
+        else next.delete(name);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  const investors = previewInvestors.filter(
+    (investor) =>
+      (!query ||
+        `${investor.alias} ${investor.id}`
+          .toLowerCase()
+          .includes(query.toLowerCase())) &&
+      (!teamId || investor.teamId === Number(teamId)) &&
+      (!kind || investor.kind === kind) &&
+      spendingStatus !== "COMPLETED",
+  );
+  // 기본 시안은 검색 결과 52명 중 6개 행만 그려져 있습니다.
+  const resultCount =
+    !query && !teamId && !kind && spendingStatus === "UNSPENT"
+      ? 52
+      : investors.length;
+
+  return (
+    <div className="flex flex-col gap-4.5">
+      <header className="flex h-8.5 items-center justify-between whitespace-nowrap">
+        <h1 className="text-2xl leading-8.5 font-bold text-[#111]">
+          투자자 목록
+        </h1>
+        <p className="text-[13px] leading-4.5 text-[#777]">
+          ● 2초 자동 갱신 · 필터 유지
+        </p>
+      </header>
+      <div
+        aria-label="투자자 검색 및 필터"
+        className="flex items-center gap-2.5 text-[13px] leading-4.5"
+      >
+        <input
+          type="search"
+          aria-label="별칭 또는 ID 검색"
+          placeholder="🔍  별칭 · ID 검색"
+          value={query}
+          onChange={(event) => updateFilter("q", event.target.value)}
+          maxLength={100}
+          className="h-11 w-65 rounded-lg border border-[#c4c4c4] bg-white px-3.5 text-[#333] placeholder:text-[#999]"
+        />
+        <label className="relative h-11 w-32.5">
+          <select
+            aria-label="소속 팀"
+            value={teamId}
+            onChange={(event) => updateFilter("teamId", event.target.value)}
+            className="h-full w-full appearance-none rounded-lg border border-[#c4c4c4] bg-white px-3.5 text-transparent [&>option]:text-[#555]"
+          >
+            <option value="">팀 전체</option>
+            {Array.from({ length: 20 }, (_, index) => index + 1).map((team) => (
+              <option key={team} value={team}>
+                TEAM {String(team).padStart(2, "0")}
+              </option>
+            ))}
+          </select>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-3.25 left-3.75 text-[#555]"
+          >
+            {teamId ? `TEAM ${teamId.padStart(2, "0")}` : "팀 전체"} ▾
+          </span>
+        </label>
+        <label className="relative h-11 w-32.5">
+          <select
+            aria-label="역할"
+            value={kind}
+            onChange={(event) => updateFilter("kind", event.target.value)}
+            className="h-full w-full appearance-none rounded-lg border border-[#c4c4c4] bg-white px-3.5 text-transparent [&>option]:text-[#555]"
+          >
+            <option value="">역할 전체</option>
+            <option value="PARTICIPANT">참가자</option>
+            <option value="STAFF">운영팀</option>
+          </select>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-3.25 left-3.75 text-[#555]"
+          >
+            {kind === "STAFF"
+              ? "운영팀"
+              : kind === "PARTICIPANT"
+                ? "참가자"
+                : "역할 전체"}{" "}
+            ▾
+          </span>
+        </label>
+        <div
+          role="group"
+          aria-label="투자금 소진 상태"
+          className="flex overflow-hidden rounded-lg border border-[#c4c4c4]"
+        >
+          {spendingFilters.map(({ value, label, width }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={spendingStatus === value}
+              onClick={() => updateFilter("spendingStatus", value)}
+              className={`${width} h-10.5 shrink-0 font-bold ${spendingStatus === value ? "bg-dark text-white" : "bg-white text-[#555]"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p aria-live="polite" className="text-[13px] leading-4.5 text-[#777]">
+        검색 결과 {resultCount}명
+      </p>
+      <div className="overflow-hidden rounded-lg border border-[#d0d0d0]">
+        <table
+          aria-label="투자자 목록"
+          className="w-full table-fixed border-separate border-spacing-0 text-left text-[13px] leading-4.5 whitespace-nowrap"
+        >
+          <colgroup>
+            <col className="w-57.5" />
+            <col className="w-30" />
+            <col className="w-27.5" />
+            <col className="w-37.5" />
+            <col className="w-37.5" />
+            <col className="w-37.5" />
+            <col />
+          </colgroup>
+          <thead className="bg-[#ededed] text-[#444]">
+            <tr>
+              {["별칭", "역할", "팀", "지급액", "투자액", "잔액", "상태"].map(
+                (label) => (
+                  <th
+                    key={label}
+                    scope="col"
+                    className="border-b border-[#e4e4e4] px-3.5 py-2.5 font-bold"
+                  >
+                    {label}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody className="text-[#333]">
+            {investors.map((investor) => (
+              <tr
+                key={investor.id}
+                onClick={() => navigate(`/admin/investors/${investor.id}`)}
+                className="h-10.5 cursor-pointer [&>td]:border-b [&>td]:border-[#e4e4e4] [&>td]:px-3.5 [&>td]:py-2.5"
+              >
+                <td>
+                  <Link
+                    to={`/admin/investors/${investor.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {investor.alias}
+                  </Link>
+                </td>
+                <td>{investor.kind === "STAFF" ? "운영팀" : "참가자"}</td>
+                <td>
+                  {investor.teamId ? (
+                    <span className="font-sans">
+                      TEAM {String(investor.teamId).padStart(2, "0")}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>1,000,000원</td>
+                <td>{investor.investedAmount.toLocaleString("ko-KR")}원</td>
+                <td>
+                  {(1000000 - investor.investedAmount).toLocaleString("ko-KR")}
+                  원
+                </td>
+                <td>
+                  <span className="inline-block w-13.5 rounded-full bg-[#fdecec] py-0.5 text-center text-xs leading-4.25 font-bold text-[#b42318]">
+                    미소진
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs leading-4.25 text-[#999]">
+        행 클릭 → 투자자 상세(A04)
+      </p>
+    </div>
+  );
+}
