@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/investor/LoginPage";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
+import InvestmentSuccessPage from "./pages/investor/InvestmentSuccessPage";
 import InvestorProtectedRoute from "./features/auth/components/InvestorProtectedRoute";
 
 function App() {
@@ -14,6 +15,10 @@ function App() {
       <Route element={<InvestorProtectedRoute />}>
         <Route path="/invest" element={<HomePage />} />
         <Route path="/invest/teams/:teamId" element={<TeamDetailPage />} />
+        <Route
+          path="/invest/success/:investmentId"
+          element={<InvestmentSuccessPage />}
+        />
       </Route>
 
       {/* 관리자 */}
