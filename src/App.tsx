@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/investor/LoginPage";
 import AdminLoginPage from "./pages/admin/LoginPage";
 import OverviewPage from "./pages/admin/OverviewPage";
+import InvestorListPage from "./pages/admin/InvestorListPage";
 import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
@@ -28,6 +29,7 @@ function App() {
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<OverviewPage />} />
+        <Route path="investors" element={<InvestorListPage />} />
       </Route>
 
       {/* 공개 대시보드 */}
