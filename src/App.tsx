@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/investor/LoginPage";
+import AdminLoginPage from "./pages/admin/LoginPage";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
 import InvestmentSuccessPage from "./pages/investor/InvestmentSuccessPage";
@@ -22,7 +23,7 @@ function App() {
       </Route>
 
       {/* 관리자 */}
-      <Route path="/admin/login" element={<div>관리자 로그인</div>} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<div>관리자 홈</div>} />
 
       {/* 공개 대시보드 */}
