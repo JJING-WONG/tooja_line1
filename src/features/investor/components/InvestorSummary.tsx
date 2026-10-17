@@ -16,7 +16,7 @@ export default function InvestorSummary({ investor }: { investor: Investor }) {
       aria-label="내 투자 현황"
       className="flex w-[calc(100%+3px)] flex-col gap-1.5 rounded-[14px] bg-white p-4.5 font-['Noto_Sans_KR',sans-serif]"
     >
-      <p className="text-[12px] leading-4.25 text-[#888]">
+      <p className="h-4.25 text-[12px] leading-4.25 text-[#888]">
         {investor.kind === "STAFF" ? (
           "운영팀"
         ) : (
@@ -49,6 +49,15 @@ export default function InvestorSummary({ investor }: { investor: Investor }) {
         총 지급 {investor.issuedAmount.toLocaleString("ko-KR")}원 · 투자{" "}
         {investor.investedAmount.toLocaleString("ko-KR")}원
       </p>
+      {investor.kind === "PARTICIPANT" &&
+        investor.spendingStatus === "COMPLETED" && (
+          <p
+            role="status"
+            className="rounded-lg bg-[#fdecec] px-3.5 py-3 text-[12px] leading-4.25 text-[#b42318]"
+          >
+            마일리지가 전부 소진되었어요
+          </p>
+        )}
       {investor.kind === "PARTICIPANT" &&
         investor.spendingStatus !== "COMPLETED" && (
           <div className="rounded-lg bg-[#fff8e6] px-3.5 py-3 text-[12px] leading-4.25 text-[#7a5b00]">

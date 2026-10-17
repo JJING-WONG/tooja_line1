@@ -1,4 +1,7 @@
 import { useInvestorLogout } from "../../features/auth/hooks/useInvestorLogout";
+import { useState } from "react";
+import LoadingOverlay from "../../components/ui/LoadingOverlay";
+import ErrorDialog from "../../components/ui/ErrorDialog";
 import { Link } from "react-router-dom";
 import InvestorSummary from "../../features/investor/components/InvestorSummary";
 import BoothMap from "../../features/investor/components/BoothMap";
@@ -8,10 +11,12 @@ export default function HomePage() {
   const { logout, isPending, errorMessage } = useInvestorLogout();
   const teamsQuery = useInvestorTeams();
   const home = teamsQuery.data;
+  const [dismissedErrorAt, setDismissedErrorAt] = useState<number | null>(null);
+  const isLoading = teamsQuery.isFetching && !isPending;
 
   return (
     <main className="min-h-dvh bg-[#fafafa] text-dark">
-      <div className="mx-auto flex w-full max-w-93.75 flex-col gap-3 px-[19.5px] pb-[33.5px] pt-[46.5px]">
+      <div inert={isLoading} aria-busy={isLoading} className="mx-auto flex w-full max-w-93.75 flex-col gap-3 px-[19.5px] pb-[33.5px] pt-[46.5px]">
         <header className="flex min-h-9.75 flex-wrap items-center justify-between gap-1">
           <p className="whitespace-nowrap text-[20px] leading-7 text-[#2b362d]">
             MALLAGE{" "}
@@ -46,11 +51,6 @@ export default function HomePage() {
             {errorMessage}
           </p>
         )}
-        {teamsQuery.isPending && !home && (
-          <p role="status" className="py-6 text-center text-sm text-[#777]">
-            투자 현황과 부스 목록을 불러오고 있습니다.
-          </p>
-        )}
         {teamsQuery.isError && (
           <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
             <p>
@@ -75,10 +75,15 @@ export default function HomePage() {
               teams={home.teams}
               isStaff={home.investor.kind === "STAFF"}
               isCompleted={home.investor.spendingStatus === "COMPLETED"}
+              isPaused={home.investmentStatus.status === "PAUSED"}
             />
           </>
         )}
       </div>
+      {isLoading && <LoadingOverlay />}
+      {teamsQuery.isError && teamsQuery.errorUpdatedAt !== dismissedErrorAt && (
+        <ErrorDialog onConfirm={() => setDismissedErrorAt(teamsQuery.errorUpdatedAt)} />
+      )}
     </main>
   );
 }

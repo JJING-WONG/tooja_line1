@@ -15,10 +15,12 @@ export default function BoothMap({
   teams,
   isStaff,
   isCompleted,
+  isPaused = false,
 }: {
   teams: Booth[];
   isStaff: boolean;
   isCompleted: boolean;
+  isPaused?: boolean;
 }) {
   return (
     <section aria-labelledby="booth-list-title">
@@ -62,6 +64,24 @@ export default function BoothMap({
               }),
             )}
           </ul>
+          {isPaused && (
+            <div
+              role="status"
+              className="pointer-events-none absolute inset-0 rounded-[10px] bg-black/70 text-center text-[16.607px] font-bold leading-5.75 text-[#fdfdfd] font-['Noto_Sans_KR', sans-serif]"
+            >
+              <p
+                className="absolute h-11.5 w-[calc(100%+1px)]"
+                style={{
+                  left: `${(4 / 335) * 100}%`,
+                  top: `${(184 / 401) * 100}%`,
+                }}
+              >
+                지금은 점검 중이라
+                <br />
+                투자할 수 없어요
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>
