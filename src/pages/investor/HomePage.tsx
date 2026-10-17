@@ -1,31 +1,13 @@
 import { useInvestorLogout } from "../../features/auth/hooks/useInvestorLogout";
 import { Link } from "react-router-dom";
-import type { components } from "../../apis/schema";
 import InvestorSummary from "../../features/investor/components/InvestorSummary";
 import BoothMap from "../../features/investor/components/BoothMap";
-import type { Booth } from "../../features/investor/components/BoothItem";
-
-// UI 1차 구현용 Figma 예시 데이터. 다음 단계에서 useInvestorTeams 응답으로 교체합니다.
-const previewInvestor: components["schemas"]["Investor"] = {
-  investorId: "preview",
-  alias: "팀 03 투자자 012",
-  kind: "PARTICIPANT",
-  teamId: 3,
-  hasLoggedIn: true,
-  issuedAmount: 1_000_000,
-  investedAmount: 700_000,
-  balance: 300_000,
-  spendingStatus: "UNSPENT",
-};
-const previewTeams: Booth[] = Array.from({ length: 20 }, (_, index) => ({
-  teamId: index + 1,
-  investmentState:
-    index === 2 ? "SELF_TEAM" : index === 1 ? "ALREADY_INVESTED" : "AVAILABLE",
-  myInvestmentAmount: index === 1 ? 700_000 : 0,
-}));
+import { useInvestorTeams } from "../../features/investor/hooks/useInvestorTeams";
 
 export default function HomePage() {
   const { logout, isPending, errorMessage } = useInvestorLogout();
+  const teamsQuery = useInvestorTeams();
+  const home = teamsQuery.data;
 
   return (
     <main className="min-h-dvh bg-[#fafafa] text-dark">
@@ -64,12 +46,38 @@ export default function HomePage() {
             {errorMessage}
           </p>
         )}
-        <InvestorSummary investor={previewInvestor} />
-        <BoothMap
-          teams={previewTeams}
-          isStaff={previewInvestor.kind === "STAFF"}
-          isCompleted={previewInvestor.spendingStatus === "COMPLETED"}
-        />
+        {teamsQuery.isPending && !home && (
+          <p role="status" className="py-6 text-center text-sm text-[#777]">
+            투자 현황과 부스 목록을 불러오고 있습니다.
+          </p>
+        )}
+        {teamsQuery.isError && (
+          <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
+            <p>
+              {home
+                ? "최신 정보를 불러오지 못했습니다. 이전 조회 결과를 표시합니다."
+                : "투자 현황과 부스 목록을 불러오지 못했습니다."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void teamsQuery.refetch()}
+              disabled={teamsQuery.isFetching || isPending}
+              className="mt-2 cursor-pointer rounded text-secondary underline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
+            >
+              {teamsQuery.isFetching ? "불러오는 중…" : "다시 시도"}
+            </button>
+          </div>
+        )}
+        {home && (
+          <>
+            <InvestorSummary investor={home.investor} />
+            <BoothMap
+              teams={home.teams}
+              isStaff={home.investor.kind === "STAFF"}
+              isCompleted={home.investor.spendingStatus === "COMPLETED"}
+            />
+          </>
+        )}
       </div>
     </main>
   );

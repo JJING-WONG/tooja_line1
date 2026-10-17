@@ -29,7 +29,7 @@ export default function BoothMap({
         >
           부스 목록
         </h2>
-        <p className="w-[47px] text-[12px] leading-4.25 text-[#888] [font-family:'Noto_Sans_KR',sans-serif]">
+        <p className="w-11.75 text-[12px] leading-4.25 text-[#888] font-['Noto_Sans_KR', sans-serif]">
           {teams.length}개 팀
         </p>
       </div>
