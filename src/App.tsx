@@ -3,6 +3,7 @@ import LoginPage from "./pages/investor/LoginPage";
 import AdminLoginPage from "./pages/admin/LoginPage";
 import OverviewPage from "./pages/admin/OverviewPage";
 import InvestorListPage from "./pages/admin/InvestorListPage";
+import InvestorDetailPage from "./pages/admin/InvestorDetailPage";
 import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
@@ -30,6 +31,7 @@ function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<OverviewPage />} />
         <Route path="investors" element={<InvestorListPage />} />
+        <Route path="investors/:investorId" element={<InvestorDetailPage />} />
       </Route>
 
       {/* 공개 대시보드 */}
