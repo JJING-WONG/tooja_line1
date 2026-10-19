@@ -39,7 +39,7 @@
 
 ## 3. API별 진행 현황
 
-**전체 22개 · 요청 함수 완료 14개 / 미구현 8개 · 화면 연동 완료 5개**
+**전체 22개 · 요청 함수 완료 16개 / 미구현 6개 · 화면 연동 완료 5개**
 
 - API 개수는 `docs/openapi.json`의 **HTTP 메서드 + 경로** 기준이다. 아래 경로에는 공통 접두사 `/api/v1`을 생략했다.
 - 요청 함수: `완료`는 명세에 맞는 함수·타입 구현, `미구현`은 함수가 아직 없음을 뜻한다.
@@ -64,11 +64,11 @@
 | 13  | 관리자 로그인       | POST `/admin/session`                            | 완료 · `loginAdmin`                      | 미연동                | 미검증    |
 | 14  | 관리자 세션 조회    | GET `/admin/session`                             | 완료 · `getAdminSession`                      | 미연동                | 미검증    |
 | 15  | 관리자 로그아웃     | DELETE `/admin/session`                          | 완료 · `logoutAdmin`                      | 미연동                | 미검증    |
-| 16  | 운영 현황           | GET `/admin/overview`                            | 미구현                      | 미연동                | 미검증    |
+| 16  | 운영 현황           | GET `/admin/overview`                            | 완료 · `getAdminOverview`                      | 미연동                | 미검증    |
 | 17  | 투자자 목록         | GET `/admin/investors`                           | 미구현                      | 미연동                | 미검증    |
 | 18  | 투자자 상세         | GET `/admin/investors/{investorId}`              | 미구현                      | 미연동                | 미검증    |
 | 19  | 투자자 별칭 수정    | PATCH `/admin/investors/{investorId}`            | 미구현                      | 보류 · UI 범위 미확정 | 미검증    |
-| 20  | 투자 중지·재개      | PATCH `/admin/investment-status`                 | 미구현                      | 미연동                | 미검증    |
+| 20  | 투자 중지·재개      | PATCH `/admin/investment-status`                 | 완료 · `updateInvestmentStatus`                      | 미연동                | 미검증    |
 | 21  | 공개 순위           | GET `/public/dashboard`                          | 미구현                      | 미연동                | 미검증    |
 | 22  | 공개 투자 접수 상태 | GET `/public/investment-status`                  | 미구현                      | 미연동                | 미검증    |
 
