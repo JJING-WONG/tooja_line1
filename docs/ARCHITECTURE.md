@@ -41,49 +41,51 @@
 
 ## 3. 폴더 구조 설계
 
+```text
 src/
-├── apis/ # 공통 API 통신 설정
-│ └── client.ts # Axios 인스턴스
+├── apis/                       # 공통 API 통신 설정
+│   └── client.ts               # Axios 인스턴스
 │
-├── assets/ # 이미지, 아이콘 등 정적 리소스
+├── assets/                     # 이미지, 아이콘 등 정적 리소스
 │
 ├── components/
-│ └── ui/ # 공통 UI 컴포넌트
+│   └── ui/                     # 공통 UI 컴포넌트
 │
-├── features/ # 기능별 코드 관리
-│ ├── admin/ # 관리자 기능
-│ │ ├── apis/ # 관리자 API
-│ │ └── components/ # 관리자 전용 컴포넌트
-│ │
-│ ├── auth/ # 인증 기능
-│ │ ├── apis/ # 로그인, 로그아웃, 세션 관련 API
-│ │ └── types/ # 인증 관련 타입
-│ │
-│ ├── dashboard/ # 공개 투자 대시보드
-│ │ ├── apis/ # 대시보드 API
-│ │ └── components/ # 대시보드 전용 컴포넌트
-│ │
-│ ├── investment/ # 투자 기능
-│ │ ├── apis/ # 투자 요청 및 투자 내역 API
-│ │ ├── components/ # 투자 관련 컴포넌트
-│ │ └── types/ # 투자 관련 타입
-│ │
-│ └── investor/ # 투자자 기능
-│ ├── apis/ # 투자자 정보 및 팀 조회 API
-│ └── components/ # 투자자 전용 컴포넌트
+├── features/                   # 기능별 코드 관리
+│   ├── admin/                  # 관리자 기능
+│   │   ├── apis/               # 관리자 API
+│   │   └── components/         # 관리자 전용 컴포넌트
+│   │
+│   ├── auth/                   # 인증 기능
+│   │   ├── apis/               # 로그인, 로그아웃, 세션 관련 API
+│   │   └── types/              # 인증 관련 타입
+│   │
+│   ├── dashboard/              # 공개 투자 대시보드
+│   │   ├── apis/               # 대시보드 API
+│   │   └── components/         # 대시보드 전용 컴포넌트
+│   │
+│   ├── investment/             # 투자 기능
+│   │   ├── apis/               # 투자 요청 및 투자 내역 API
+│   │   ├── components/         # 투자 관련 컴포넌트
+│   │   └── types/              # 투자 관련 타입
+│   │
+│   └── investor/               # 투자자 기능
+│       ├── apis/               # 투자자 정보 및 팀 조회 API
+│       └── components/         # 투자자 전용 컴포넌트
 │
-├── layouts/ # 페이지 공통 레이아웃
-│ ├── AdminLayout.tsx # 관리자 레이아웃
-│ └── InvestorLayout.tsx # 투자자 레이아웃
+├── layouts/                    # 페이지 공통 레이아웃
+│   ├── AdminLayout.tsx         # 관리자 레이아웃
+│   └── InvestorLayout.tsx      # 투자자 레이아웃
 │
-├── pages/ # 라우팅 단위 페이지
-│ ├── admin/ # 관리자 페이지
-│ ├── dashboard/ # 공개 대시보드 페이지
-│ └── investor/ # 투자자 페이지
+├── pages/                      # 라우팅 단위 페이지
+│   ├── admin/                  # 관리자 페이지
+│   ├── dashboard/              # 공개 대시보드 페이지
+│   └── investor/               # 투자자 페이지
 │
-├── App.tsx # 라우팅 설정
-├── main.tsx # React 진입점 및 전역 Provider 설정
-└── index.css # 전역 스타일
+├── App.tsx                     # 라우팅 설정
+├── main.tsx                    # React 진입점 및 전역 Provider 설정
+└── index.css                   # 전역 스타일
+```
 
 ## 4. API 및 상태 관리 설계
 
