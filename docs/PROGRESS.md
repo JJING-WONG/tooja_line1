@@ -39,7 +39,7 @@
 
 ## 3. API별 진행 현황
 
-**전체 22개 · 요청 함수 완료 9개 / 미구현 13개 · 화면 연동 완료 5개**
+**전체 22개 · 요청 함수 완료 10개 / 미구현 12개 · 화면 연동 완료 5개**
 
 - API 개수는 `docs/openapi.json`의 **HTTP 메서드 + 경로** 기준이다. 아래 경로에는 공통 접두사 `/api/v1`을 생략했다.
 - 요청 함수: `완료`는 명세에 맞는 함수·타입 구현, `미구현`은 함수가 아직 없음을 뜻한다.
@@ -57,7 +57,7 @@
 | 6   | 팀 상세             | GET `/investor/teams/{teamId}`                   | 완료 · `getInvestorTeam`                      | 미연동                | 미검증    |
 | 7   | 투자자 본인 정보    | GET `/investor/me`                               | 미구현                      | 미연동                | 미검증    |
 | 8   | 투자 확정           | POST `/investor/investments`                     | 완료 · `createInvestment`                      | 미연동                | 미검증    |
-| 9   | 내 투자 내역        | GET `/investor/investments`                      | 미구현                      | 미연동                | 미검증    |
+| 9   | 내 투자 내역        | GET `/investor/investments`                      | 완료 · `getMyInvestments`    | 미연동                | 미검증    |
 | 10  | 거래 상세           | GET `/investor/investments/{investmentId}`       | 완료 · `getMyInvestment`     | 미연동                | 미검증    |
 | 11  | 요청 키별 투자 결과 | GET `/investor/investment-requests/{requestKey}` | 완료 · `getInvestmentRequest`                      | 미연동                | 미검증    |
 | 12  | 관리자 CSRF         | GET `/admin/csrf`                                | 미구현                      | 미연동                | 미검증    |

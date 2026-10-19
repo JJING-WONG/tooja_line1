@@ -5,6 +5,7 @@ type InvestmentInput = components["schemas"]["InvestmentInput"];
 type InvestmentReceipt = components["schemas"]["InvestmentReceipt"];
 type RequestResult = components["schemas"]["RequestResult"];
 type InvestmentDetail = components["schemas"]["InvestmentDetail"];
+type InvestmentHistory = components["schemas"]["InvestmentHistory"];
 
 /**
  * 투자 확정: POST /api/v1/investor/investments
@@ -80,6 +81,28 @@ export const getMyInvestment = async (
 ): Promise<InvestmentDetail> => {
   const response = await apiClient.get<InvestmentDetail>(
     `/investor/investments/${encodeURIComponent(investmentId)}`,
+    { signal },
+  );
+
+  return response.data;
+};
+
+/**
+ * 본인 투자 내역 조회: GET /api/v1/investor/investments
+ * 사용 예정: P05 내 투자 내역 화면 진입 및 투자 후 내역 갱신 시 호출. 현재 화면 미연동.
+ * 요청: 투자자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
+ * 응답: 200, InvestmentHistory — { investor, items, count, asOf }.
+ * investor에는 현재 잔액·총 투자액·소진 상태가 포함되어 별도 잔액 조회가 필요 없습니다.
+ * items는 본인의 확정 거래만 최신 확정 시각순(동일 시각은 저장 역순)으로 반환합니다.
+ * 거래가 없으면 정상 200 응답에 items: [], count: 0이며 페이지네이션은 없습니다.
+ * 상세 조회에는 각 거래의 investmentId를 사용하고 확정 시각(UTC)은 표시 시 변환합니다.
+ * HTTP 오류는 호출부에 전달하며, signal은 조회 취소용입니다.
+ */
+export const getMyInvestments = async (
+  signal?: AbortSignal,
+): Promise<InvestmentHistory> => {
+  const response = await apiClient.get<InvestmentHistory>(
+    "/investor/investments",
     { signal },
   );
 
