@@ -39,7 +39,7 @@
 
 ## 3. API별 진행 현황
 
-**전체 22개 · 요청 함수 완료 18개 / 미구현 4개 · 화면 연동 완료 5개**
+**전체 22개 · 요청 함수 완료 20개 / 미구현 2개 · 화면 연동 완료 5개**
 
 - API 개수는 `docs/openapi.json`의 **HTTP 메서드 + 경로** 기준이다. 아래 경로에는 공통 접두사 `/api/v1`을 생략했다.
 - 요청 함수: `완료`는 명세에 맞는 함수·타입 구현, `미구현`은 함수가 아직 없음을 뜻한다.
@@ -69,8 +69,8 @@
 | 18  | 투자자 상세         | GET `/admin/investors/{investorId}`              | 완료 · `getAdminInvestor`    | 미연동                | 미검증    |
 | 19  | 투자자 별칭 수정    | PATCH `/admin/investors/{investorId}`            | 미구현                      | 보류 · UI 범위 미확정 | 미검증    |
 | 20  | 투자 중지·재개      | PATCH `/admin/investment-status`                 | 완료 · `updateInvestmentStatus`                      | 미연동                | 미검증    |
-| 21  | 공개 순위           | GET `/public/dashboard`                          | 미구현                      | 미연동                | 미검증    |
-| 22  | 공개 투자 접수 상태 | GET `/public/investment-status`                  | 미구현                      | 미연동                | 미검증    |
+| 21  | 공개 순위           | GET `/public/dashboard`                          | 완료 · `getDashboard`       | 미연동                | 미검증    |
+| 22  | 공개 투자 접수 상태 | GET `/public/investment-status`                  | 완료 · `getInvestmentStatus` | 미연동               | 미검증    |
 
 P03·P03-M 요청 함수 3개 구현 완료: 빌드·ESLint 및 로컬 Axios 어댑터 검증 통과(요청 경로·본문·헤더, 요청 키 유지, 결과·오류 전달, 자동 재시도 없음, 조회 취소). 실제 서버 검증과 페이지 연동은 아직 진행하지 않았다.
 
