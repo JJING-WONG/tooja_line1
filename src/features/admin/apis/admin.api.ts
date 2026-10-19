@@ -1,9 +1,11 @@
 import { apiClient } from "../../../apis/client";
-import type { components } from "../../../apis/schema";
+import type { components, operations } from "../../../apis/schema";
 
 type Overview = components["schemas"]["Overview"];
 type InvestmentStatusInput = components["schemas"]["InvestmentStatusInput"];
 type InvestmentStatus = components["schemas"]["InvestmentStatus"];
+type InvestorList = components["schemas"]["InvestorList"];
+type InvestorListParams = operations["listInvestors"]["parameters"]["query"];
 
 /**
  * 관리자 운영 현황 조회: GET /api/v1/admin/overview
@@ -46,6 +48,37 @@ export const updateInvestmentStatus = async (
     { status: input.status },
     { headers: { "X-CSRF-Token": csrfToken } },
   );
+
+  return response.data;
+};
+
+/**
+ * 관리자 투자자 목록 조회: GET /api/v1/admin/investors
+ * 사용 예정: A03 진입·검색·필터 변경·자동 갱신 시 호출. 현재 화면 미연동.
+ * A02의 미소진 투자자 보기에서 이동하면 spendingStatus: "UNSPENT"로 조회합니다.
+ * 요청: 관리자 세션 쿠키로 인증. 본문·CSRF 헤더 없음.
+ * 선택 쿼리: q(별칭·내부 ID 부분 검색, 최대 100자), teamId(1~20),
+ * kind(PARTICIPANT·STAFF), spendingStatus(NOT_ACTIVATED·UNSPENT·COMPLETED).
+ * 전체 선택은 해당 필터를 생략합니다. UI의 ALL·빈 선택값을 서버로 보내지 않습니다.
+ * 여러 필터는 AND 조건이며 STAFF와 teamId를 함께 지정하면 빈 목록입니다.
+ * 응답: 200, InvestorList — { items: Investor[], count, asOf }.
+ * 별칭·내부 ID순으로 정렬하며 페이지네이션은 없습니다. 결과가 없으면 items: [], count: 0.
+ * 상세 이동에는 items의 investorId를 사용하며 로그인 코드는 반환하지 않습니다.
+ * HTTP 오류는 호출부에 전달하며, signal은 조회 취소용입니다.
+ */
+export const getAdminInvestors = async (
+  params?: InvestorListParams,
+  signal?: AbortSignal,
+): Promise<InvestorList> => {
+  const response = await apiClient.get<InvestorList>("/admin/investors", {
+    params: {
+      q: params?.q,
+      teamId: params?.teamId,
+      kind: params?.kind,
+      spendingStatus: params?.spendingStatus,
+    },
+    signal,
+  });
 
   return response.data;
 };
