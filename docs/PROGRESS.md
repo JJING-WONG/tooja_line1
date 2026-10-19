@@ -39,7 +39,7 @@
 
 ## 3. API별 진행 현황
 
-**전체 22개 · 요청 함수 완료 10개 / 미구현 12개 · 화면 연동 완료 5개**
+**전체 22개 · 요청 함수 완료 14개 / 미구현 8개 · 화면 연동 완료 5개**
 
 - API 개수는 `docs/openapi.json`의 **HTTP 메서드 + 경로** 기준이다. 아래 경로에는 공통 접두사 `/api/v1`을 생략했다.
 - 요청 함수: `완료`는 명세에 맞는 함수·타입 구현, `미구현`은 함수가 아직 없음을 뜻한다.
@@ -60,10 +60,10 @@
 | 9   | 내 투자 내역        | GET `/investor/investments`                      | 완료 · `getMyInvestments`    | 미연동                | 미검증    |
 | 10  | 거래 상세           | GET `/investor/investments/{investmentId}`       | 완료 · `getMyInvestment`     | 미연동                | 미검증    |
 | 11  | 요청 키별 투자 결과 | GET `/investor/investment-requests/{requestKey}` | 완료 · `getInvestmentRequest`                      | 미연동                | 미검증    |
-| 12  | 관리자 CSRF         | GET `/admin/csrf`                                | 미구현                      | 미연동                | 미검증    |
-| 13  | 관리자 로그인       | POST `/admin/session`                            | 미구현                      | 미연동                | 미검증    |
-| 14  | 관리자 세션 조회    | GET `/admin/session`                             | 미구현                      | 미연동                | 미검증    |
-| 15  | 관리자 로그아웃     | DELETE `/admin/session`                          | 미구현                      | 미연동                | 미검증    |
+| 12  | 관리자 CSRF         | GET `/admin/csrf`                                | 완료 · `getAdminCsrf`                      | 미연동                | 미검증    |
+| 13  | 관리자 로그인       | POST `/admin/session`                            | 완료 · `loginAdmin`                      | 미연동                | 미검증    |
+| 14  | 관리자 세션 조회    | GET `/admin/session`                             | 완료 · `getAdminSession`                      | 미연동                | 미검증    |
+| 15  | 관리자 로그아웃     | DELETE `/admin/session`                          | 완료 · `logoutAdmin`                      | 미연동                | 미검증    |
 | 16  | 운영 현황           | GET `/admin/overview`                            | 미구현                      | 미연동                | 미검증    |
 | 17  | 투자자 목록         | GET `/admin/investors`                           | 미구현                      | 미연동                | 미검증    |
 | 18  | 투자자 상세         | GET `/admin/investors/{investorId}`              | 미구현                      | 미연동                | 미검증    |
@@ -75,6 +75,8 @@
 P03·P03-M 요청 함수 3개 구현 완료: 빌드·ESLint 및 로컬 Axios 어댑터 검증 통과(요청 경로·본문·헤더, 요청 키 유지, 결과·오류 전달, 자동 재시도 없음, 조회 취소). 실제 서버 검증과 페이지 연동은 아직 진행하지 않았다.
 
 ### 구현 위치 및 연동 원칙
+
+관리자 인증 요청 함수 4개 구현 완료: 빌드·ESLint 및 로컬 Axios 어댑터로 경로·헤더·코드 문자열·응답·로그아웃·오류 전달·조회 취소 확인. 화면 연동과 실제 서버 검증은 미진행.
 
 - 모든 API 함수 주석에 사용 화면(ID·화면명)과 호출 시점을 기록한다. 미연동 함수는 ‘사용 예정’으로 구분하고, 연결할 때 실제 사용처로 갱신한다.
 
