@@ -39,7 +39,7 @@
 
 ## 3. API별 진행 현황
 
-**전체 22개 · 요청 함수 완료 5개 / 미구현 17개 · 화면 연동 완료 5개**
+**전체 22개 · 요청 함수 완료 8개 / 미구현 14개 · 화면 연동 완료 5개**
 
 - API 개수는 `docs/openapi.json`의 **HTTP 메서드 + 경로** 기준이다. 아래 경로에는 공통 접두사 `/api/v1`을 생략했다.
 - 요청 함수: `완료`는 명세에 맞는 함수·타입 구현, `미구현`은 함수가 아직 없음을 뜻한다.
@@ -54,12 +54,12 @@
 | 3   | 투자자 세션 조회    | GET `/investor/session`                          | 완료 · `getInvestorSession` | 완료                  | 기본 확인 |
 | 4   | 투자자 로그아웃     | DELETE `/investor/session`                       | 완료 · `logoutInvestor`     | 완료                  | 기본 확인 |
 | 5   | 부스 목록           | GET `/investor/teams`                            | 완료 · `getInvestorTeams`   | 완료                  | 기본 확인 |
-| 6   | 팀 상세             | GET `/investor/teams/{teamId}`                   | 미구현                      | 미연동                | 미검증    |
+| 6   | 팀 상세             | GET `/investor/teams/{teamId}`                   | 완료 · `getInvestorTeam`                      | 미연동                | 미검증    |
 | 7   | 투자자 본인 정보    | GET `/investor/me`                               | 미구현                      | 미연동                | 미검증    |
-| 8   | 투자 확정           | POST `/investor/investments`                     | 미구현                      | 미연동                | 미검증    |
+| 8   | 투자 확정           | POST `/investor/investments`                     | 완료 · `createInvestment`                      | 미연동                | 미검증    |
 | 9   | 내 투자 내역        | GET `/investor/investments`                      | 미구현                      | 미연동                | 미검증    |
 | 10  | 거래 상세           | GET `/investor/investments/{investmentId}`       | 미구현                      | 미연동                | 미검증    |
-| 11  | 요청 키별 투자 결과 | GET `/investor/investment-requests/{requestKey}` | 미구현                      | 미연동                | 미검증    |
+| 11  | 요청 키별 투자 결과 | GET `/investor/investment-requests/{requestKey}` | 완료 · `getInvestmentRequest`                      | 미연동                | 미검증    |
 | 12  | 관리자 CSRF         | GET `/admin/csrf`                                | 미구현                      | 미연동                | 미검증    |
 | 13  | 관리자 로그인       | POST `/admin/session`                            | 미구현                      | 미연동                | 미검증    |
 | 14  | 관리자 세션 조회    | GET `/admin/session`                             | 미구현                      | 미연동                | 미검증    |
@@ -72,11 +72,15 @@
 | 21  | 공개 순위           | GET `/public/dashboard`                          | 미구현                      | 미연동                | 미검증    |
 | 22  | 공개 투자 접수 상태 | GET `/public/investment-status`                  | 미구현                      | 미연동                | 미검증    |
 
+P03·P03-M 요청 함수 3개 구현 완료: 빌드·ESLint 및 로컬 Axios 어댑터 검증 통과(요청 경로·본문·헤더, 요청 키 유지, 결과·오류 전달, 자동 재시도 없음, 조회 취소). 실제 서버 검증과 페이지 연동은 아직 진행하지 않았다.
+
 ### 구현 위치 및 연동 원칙
+
+- 모든 API 함수 주석에 사용 화면(ID·화면명)과 호출 시점을 기록한다. 미연동 함수는 ‘사용 예정’으로 구분하고, 연결할 때 실제 사용처로 갱신한다.
 
 - 인증 → `src/features/auth/apis/auth.api.ts`
 - 투자자 정보·팀 조회 → `src/features/investor/apis/investor.api.ts`
-- 투자 → `src/features/investment/apis` / 관리자 → `src/features/admin/apis` / 공개 조회 → `src/features/dashboard/apis`
+- 투자 → `src/features/investment/apis/investment.api.ts` / 관리자 → `src/features/admin/apis` / 공개 조회 → `src/features/dashboard/apis`
 - 아직 없는 API 파일은 해당 기능을 구현할 때 추가한다.
 - 요청·응답 타입, 필터, CSRF·요청 키 등은 실제 명세를 따른다. 별도 기능이나 필드를 추측해 추가하지 않는다.
 - 요청 함수 구현과 UI 사용 여부는 별개다. 중복 조회는 필요한 화면에서만 사용하며, 시안에 없는 기능은 임의로 연결하지 않는다.
