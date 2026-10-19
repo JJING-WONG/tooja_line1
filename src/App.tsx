@@ -4,6 +4,7 @@ import AdminLoginPage from "./pages/admin/LoginPage";
 import OverviewPage from "./pages/admin/OverviewPage";
 import InvestorListPage from "./pages/admin/InvestorListPage";
 import InvestorDetailPage from "./pages/admin/InvestorDetailPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
@@ -35,7 +36,7 @@ function App() {
       </Route>
 
       {/* 공개 대시보드 */}
-      <Route path="/dashboard" element={<div>공개 대시보드</div>} />
+      <Route path="/dashboard" element={<DashboardPage />} />
     </Routes>
   );
 }
