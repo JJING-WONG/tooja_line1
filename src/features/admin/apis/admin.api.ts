@@ -6,6 +6,7 @@ type InvestmentStatusInput = components["schemas"]["InvestmentStatusInput"];
 type InvestmentStatus = components["schemas"]["InvestmentStatus"];
 type InvestorList = components["schemas"]["InvestorList"];
 type InvestorListParams = operations["listInvestors"]["parameters"]["query"];
+type InvestorDetail = components["schemas"]["InvestorDetail"];
 
 /**
  * 관리자 운영 현황 조회: GET /api/v1/admin/overview
@@ -79,6 +80,31 @@ export const getAdminInvestors = async (
     },
     signal,
   });
+
+  return response.data;
+};
+
+/**
+ * 관리자 투자자 상세 조회: GET /api/v1/admin/investors/{investorId}
+ * 사용 예정: A04 투자자 상세 진입·새로고침 시 정보·금액 카드·거래 표를 조회. 현재 화면 미연동.
+ * 요청 경로: investorId — A03 목록에서 받은 내부 투자자 ID. 로그인 코드가 아닙니다.
+ * 요청: 관리자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
+ * 응답: 200, InvestorDetail — { investor, investments, asOf }.
+ * investor에는 별칭·역할·소속·지급액·투자액·잔액·소진 상태가 포함됩니다.
+ * investments는 확정 거래의 최신순 목록이며, 확정 시각과 asOf는 UTC입니다.
+ * 미로그인자는 지급액·잔액이 0원, 상태는 NOT_ACTIVATED, 거래는 빈 배열입니다.
+ * 운영팀 투자자도 조회 가능하며, 잔액만으로 소진 상태를 판단하지 않습니다.
+ * 없는 투자자·비활성 투자자·관리자 ID는 모두 404 RESOURCE_NOT_FOUND입니다.
+ * HTTP 오류는 호출부에 전달하며, signal은 조회 취소용입니다.
+ */
+export const getAdminInvestor = async (
+  investorId: string,
+  signal?: AbortSignal,
+): Promise<InvestorDetail> => {
+  const response = await apiClient.get<InvestorDetail>(
+    `/admin/investors/${encodeURIComponent(investorId)}`,
+    { signal },
+  );
 
   return response.data;
 };
