@@ -6,6 +6,7 @@ interface InvestmentConfirmDialogProps {
   balanceAfter: number;
   onClose: () => void;
   onConfirm?: () => void;
+  status?: "idle" | "submitting" | "checking";
 }
 
 export default function InvestmentConfirmDialog({
@@ -14,8 +15,11 @@ export default function InvestmentConfirmDialog({
   balanceAfter,
   onClose,
   onConfirm,
+  status = "idle",
 }: InvestmentConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const isBusy = status !== "idle";
+  const isChecking = status === "checking";
 
   useEffect(() => {
     const dialog = ref.current;
@@ -31,14 +35,24 @@ export default function InvestmentConfirmDialog({
     <dialog
       ref={ref}
       aria-labelledby="investment-confirm-title"
-      aria-describedby="investment-confirm-warning"
+      aria-describedby={`investment-confirm-warning${isChecking ? " investment-result-status" : ""}`}
+      aria-busy={isBusy}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        if (!isChecking) onClose();
       }}
-      className="fixed inset-x-0 bottom-[21.5px] top-auto mx-auto my-0 w-[calc(100%-39px)] max-w-84 max-h-[calc(100dvh-43px)] overflow-y-auto rounded-[20px] border-0 bg-white px-5 py-6 text-[#222] backdrop:bg-black/[0.443] font-['Noto_Sans_KR',sans-serif]"
+      className="fixed inset-x-0 bottom-[21.5px] top-auto mx-auto my-0 w-[calc(100%-39px)] max-w-84 max-h-[calc(100dvh-43px)] overflow-y-auto border-0 bg-transparent p-0 text-[#222] backdrop:bg-black/[0.443] font-['Noto_Sans_KR',sans-serif]"
     >
-      <div className="flex flex-col gap-4">
+      {isChecking && (
+        <div
+          id="investment-result-status"
+          role="status"
+          className="investment-result-notice mb-3 flex h-12 items-start rounded-[15px] bg-white px-5 pt-3 text-[15px] leading-5.25 font-medium text-[#111]/50"
+        >
+          처리 결과를 확인하고 있어요
+        </div>
+      )}
+      <div className="flex flex-col gap-4 rounded-[20px] bg-white px-5 py-6">
         <h2
           id="investment-confirm-title"
           className="h-7 text-[20px] font-bold leading-7 text-[#111]"
@@ -48,7 +62,7 @@ export default function InvestmentConfirmDialog({
         <dl className="flex flex-col gap-2.5 rounded-lg bg-[#f4f4f4] px-4 py-3.5">
           <div className="flex h-5.25 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">투자 팀</dt>
-            <dd className="text-[15px] font-bold leading-5.25 font-[Anta,sans-serif]">
+            <dd className="font-sans text-[15px] font-bold leading-5.25">
               TEAM {teamId.padStart(2, "0")}
             </dd>
           </div>
@@ -76,17 +90,21 @@ export default function InvestmentConfirmDialog({
           <button
             autoFocus
             type="button"
+            disabled={isChecking}
             onClick={onClose}
-            className="h-12.5 min-w-0 flex-1 cursor-pointer rounded-lg border border-[#bdbdbd] bg-white text-[15px] font-bold leading-5.25 text-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="h-12.5 min-w-0 flex-1 cursor-pointer rounded-lg border border-[#bdbdbd] bg-white text-[15px] font-bold leading-5.25 text-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:bg-[#bdbdbd] disabled:text-[#333]/50"
           >
             돌아가기
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            className="h-12.5 w-[66.216%] cursor-pointer rounded-lg bg-dark text-[15px] font-bold leading-5.25 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            disabled={isBusy}
+            onClick={() => {
+              if (!isBusy) onConfirm?.();
+            }}
+            className="h-12.5 w-[66.216%] cursor-pointer rounded-lg bg-dark text-[15px] font-bold leading-5.25 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait"
           >
-            투자 확정
+            {isBusy ? "처리중..." : "투자 확정"}
           </button>
         </div>
       </div>
