@@ -6,12 +6,18 @@ import InvestmentConfirmDialog from "../../features/investment/components/Invest
 
 const amounts = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000];
 
-export default function TeamDetailPage() {
+export default function TeamDetailPage({
+  previewBalance = 1_000_000,
+}: {
+  previewBalance?: number;
+}) {
   const { teamId } = useParams();
-  // 기본 디자인 확인용 값. 팀 소개·잔액·선택 가능 금액은 API 연결 시 교체합니다.
-  const balance = 1_000_000;
-  const [selectedAmount, setSelectedAmount] = useState(500_000);
+  // UI 상태 확인용 값. API 연결 시 잔액·allowedAmounts·investmentState로 교체합니다.
+  const balance = previewBalance;
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const hasInsufficientBalance = balance < amounts[0];
+  const canInvest = selectedAmount !== null && selectedAmount <= balance;
 
   return (
     <main className="min-h-dvh bg-white text-[#222] font-['Noto_Sans_KR', sans-serif]">
@@ -47,13 +53,6 @@ export default function TeamDetailPage() {
           </div>
         </section>
 
-        <div className="flex h-13.25 shrink-0 items-center justify-between rounded-lg bg-[#f4f4f4] px-4 py-3.5">
-          <span className="text-[14px] leading-5 text-[#777]">내 잔액</span>
-          <span className="text-[18px] font-bold leading-6.25">
-            {balance.toLocaleString("ko-KR")}원
-          </span>
-        </div>
-
         <fieldset className="min-w-0 shrink-0">
           <legend className="flex h-16.5 w-full items-end text-[15px] font-bold leading-5.25">
             투자 금액 선택
@@ -63,9 +62,10 @@ export default function TeamDetailPage() {
               <button
                 key={amount}
                 type="button"
+                disabled={amount > balance}
                 aria-pressed={amount === selectedAmount}
                 onClick={() => setSelectedAmount(amount)}
-                className={`${index < 4 ? "h-16.25" : "h-16.5"} cursor-pointer rounded-lg text-[14px] font-bold leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${amount === selectedAmount ? "bg-secondary text-white" : "border border-[#bdbdbd] bg-white text-[#333]"}`}
+                className={`${index < 4 ? "h-16.25" : "h-16.5"} cursor-pointer rounded-lg text-[14px] font-bold leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ${amount > balance ? `border border-[#bdbdbd] bg-[#f4f4f4] ${index < 4 ? "text-[#333]/50" : "text-black/30"}` : amount === selectedAmount ? "bg-secondary text-white" : "border border-[#bdbdbd] bg-white text-[#333]"}`}
               >
                 {amount / 10_000}만원
               </button>
@@ -73,24 +73,46 @@ export default function TeamDetailPage() {
           </div>
         </fieldset>
 
-        <div className="flex h-12.5 shrink-0 items-center justify-between rounded-lg bg-[#f4f4f4] px-4 py-3.5">
+        <dl className="shrink-0 overflow-hidden rounded-lg bg-[#f4f4f4]/50">
+          <div className="flex h-13.25 items-center justify-between px-4 py-3.5">
+            <dt className="text-[14px] leading-5 text-[#777]">내 잔액</dt>
+            <dd className="text-[18px] font-bold leading-6.25 text-[#222]/50">
+              {balance === 0 ? "0" : `${balance.toLocaleString("ko-KR")}원`}
+            </dd>
+          </div>
+          <div className={`flex items-center justify-between px-4 py-3.5 ${hasInsufficientBalance ? "h-12.25" : "h-13.25"}`}>
+            <dt className="text-[14px] leading-5 text-[#777]">투자 금액</dt>
+            <dd className={`text-[#ce6161] ${hasInsufficientBalance ? "text-[15px] font-medium leading-5.25" : "text-[18px] font-bold leading-6.25"}`}>
+              {hasInsufficientBalance
+                ? "투자 잔액이 부족해요"
+                : selectedAmount === null
+                  ? "-"
+                  : `- ${selectedAmount.toLocaleString("ko-KR")}원`}
+            </dd>
+          </div>
+        </dl>
+
+        {!hasInsufficientBalance && <div className="flex h-15.75 shrink-0 items-center justify-between rounded-lg bg-[#f4f4f4] px-4 py-3.5">
           <span className="text-[14px] leading-5 text-[#777]">
-            투자 후 잔액
+            남은 잔액
           </span>
-          <span className="text-[16px] font-bold leading-5.5">
-            {(balance - selectedAmount).toLocaleString("ko-KR")}원
+          <span className="text-[25px] font-bold leading-8.75 text-black">
+            {selectedAmount === null ? "-" : `${(balance - selectedAmount).toLocaleString("ko-KR")}원`}
           </span>
-        </div>
-        <div className="min-h-27.25 flex-1" />
+        </div>}
+        <div className="min-h-10.75 flex-1" />
         <button
           type="button"
-          onClick={() => setIsConfirmOpen(true)}
-          className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          disabled={!canInvest}
+          onClick={() => {
+            if (canInvest) setIsConfirmOpen(true);
+          }}
+          className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-primary disabled:bg-primary/40"
         >
-          {selectedAmount / 10_000}만원 투자하기
+          {canInvest && selectedAmount !== null ? `${selectedAmount / 10_000}만원 투자하기` : "지금은 투자할 수 없어요"}
         </button>
       </div>
-      {isConfirmOpen && (
+      {isConfirmOpen && canInvest && selectedAmount !== null && (
         <InvestmentConfirmDialog
           teamId={teamId ?? "05"}
           amount={selectedAmount}
