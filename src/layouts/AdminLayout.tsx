@@ -11,6 +11,7 @@ export default function AdminLayout({
   isUpdating = false,
   isInitialLoading = false,
   showRefreshError = false,
+  isRetryingRefresh = false,
   onStatusChange,
   onRetry,
   onDismissError,
@@ -19,12 +20,14 @@ export default function AdminLayout({
   isUpdating?: boolean;
   isInitialLoading?: boolean;
   showRefreshError?: boolean;
+  isRetryingRefresh?: boolean;
   onStatusChange?: (status: AdminOverviewContext["investmentStatus"]) => void;
   onRetry?: () => void;
   onDismissError?: () => void;
 }) {
   const pathname = useLocation().pathname;
   const isOverview = pathname === "/admin";
+  const supportsAutoRefresh = isOverview || pathname === "/admin/investors";
   const isExpanded = isOverview || pathname === "/admin/investors" || pathname.startsWith("/admin/investors/");
   // A02·A03·A04 공통 최초 조회 상태. 아직 데이터가 없을 때 본문·사이드바를 렌더링하지 않습니다.
   if (isInitialLoading) {
@@ -42,7 +45,7 @@ export default function AdminLayout({
         <Outlet context={{ investmentStatus } satisfies AdminOverviewContext} />
       </main>
       {isOverview && isUpdating && <LoadingOverlay variant="desktop" />}
-      {isOverview && showRefreshError && !isUpdating && <AdminRefreshErrorDialog onRetry={() => onRetry?.()} onDismiss={() => onDismissError?.()} />}
+      {supportsAutoRefresh && showRefreshError && !isUpdating && <AdminRefreshErrorDialog isRetrying={isRetryingRefresh} onRetry={() => onRetry?.()} onDismiss={() => onDismissError?.()} />}
     </div>
   );
 }

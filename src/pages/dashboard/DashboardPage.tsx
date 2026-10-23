@@ -31,9 +31,13 @@ const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 export default function DashboardPage({
   previewMode = "normal",
   isInitialLoading = false,
+  connectionStatus = "connected",
+  lastUpdatedAt = "14:32:05",
 }: {
   previewMode?: "normal" | "tied" | "zero";
   isInitialLoading?: boolean;
+  connectionStatus?: "connected" | "reconnecting";
+  lastUpdatedAt?: string;
 }) {
   // 상태별 디자인 확인용 데이터입니다. 실제 조회 연결 시 응답의 rank를 사용합니다.
   const ranking = previewRanking.map((item, index) =>
@@ -131,9 +135,16 @@ export default function DashboardPage({
                 </dd>
               </div>
             </dl>
-            <p className="w-36.75 shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 whitespace-pre text-[#a7f3d0]">
-              ● 연결됨 · 14:32:05
-            </p>
+            {/* API 연결 시 마지막 성공 갱신 시각을 유지한 채 연결 상태만 바꿉니다. */}
+            <div
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className={`shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 ${connectionStatus === "connected" ? "w-36.75 text-[#a7f3d0]" : "w-65 text-[#fca5a5]"}`}
+            >
+              <p>{connectionStatus === "connected" ? `● 연결됨 · ${lastUpdatedAt}` : "● 연결이 끊겼어요 · 재연결 중"}</p>
+              {connectionStatus === "reconnecting" && <p className="text-xs leading-4.25 text-[#9ca3af]">마지막 갱신 {lastUpdatedAt}</p>}
+            </div>
             <button
               type="button"
               onClick={toggleFullscreen}
