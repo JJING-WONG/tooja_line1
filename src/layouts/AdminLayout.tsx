@@ -9,6 +9,7 @@ export type AdminOverviewContext = { investmentStatus: "RUNNING" | "PAUSED" };
 export default function AdminLayout({
   investmentStatus = "RUNNING",
   isUpdating = false,
+  isInitialLoading = false,
   showRefreshError = false,
   onStatusChange,
   onRetry,
@@ -16,6 +17,7 @@ export default function AdminLayout({
 }: {
   investmentStatus?: AdminOverviewContext["investmentStatus"];
   isUpdating?: boolean;
+  isInitialLoading?: boolean;
   showRefreshError?: boolean;
   onStatusChange?: (status: AdminOverviewContext["investmentStatus"]) => void;
   onRetry?: () => void;
@@ -24,6 +26,10 @@ export default function AdminLayout({
   const pathname = useLocation().pathname;
   const isOverview = pathname === "/admin";
   const isExpanded = isOverview || pathname === "/admin/investors" || pathname.startsWith("/admin/investors/");
+  // A02·A03·A04 공통 최초 조회 상태. 아직 데이터가 없을 때 본문·사이드바를 렌더링하지 않습니다.
+  if (isInitialLoading) {
+    return <LoadingOverlay variant="desktop" mode="initial" />;
+  }
   return (
     <div className={`flex min-h-dvh bg-white font-['Noto_Sans_KR',sans-serif] ${isExpanded ? "w-full min-w-0" : "min-w-319.25"}`}>
       <AdminSidebar

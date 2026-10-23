@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import dashboardLogo from "../../assets/DashboardLogo.png";
 
 // D01 시안 데이터입니다. 순위·금액·연결 상태와 갱신 강조는 API 미연동입니다.
@@ -29,8 +30,10 @@ const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 
 export default function DashboardPage({
   previewMode = "normal",
+  isInitialLoading = false,
 }: {
   previewMode?: "normal" | "tied" | "zero";
+  isInitialLoading?: boolean;
 }) {
   // 상태별 디자인 확인용 데이터입니다. 실제 조회 연결 시 응답의 rank를 사용합니다.
   const ranking = previewRanking.map((item, index) =>
@@ -84,7 +87,9 @@ export default function DashboardPage({
       ref={containerRef}
       className="flex h-dvh w-full items-center justify-center overflow-hidden bg-[#1f2329] font-['Noto_Sans_KR',sans-serif]"
     >
-      <div
+      {isInitialLoading ? (
+        <LoadingOverlay variant="desktop" mode="initial" theme="dark" />
+      ) : <div
         className="relative shrink-0"
         style={{ width: 1600 * scale, height: 900 * scale }}
       >
@@ -247,7 +252,7 @@ export default function DashboardPage({
             {fullscreenError}
           </p>
         </div>
-      </div>
+      </div>}
     </main>
   );
 }
