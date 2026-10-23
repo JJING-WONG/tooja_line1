@@ -9,6 +9,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
 import InvestmentSuccessPage from "./pages/investor/InvestmentSuccessPage";
+import InvestmentHistoryPage from "./pages/investor/InvestmentHistoryPage";
 import InvestorProtectedRoute from "./features/auth/components/InvestorProtectedRoute";
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
       </Route>
       <Route element={<InvestorProtectedRoute />}>
         <Route path="/invest" element={<HomePage />} />
+        <Route path="/invest/history" element={<InvestmentHistoryPage />} />
         <Route path="/invest/teams/:teamId" element={<TeamDetailPage />} />
         <Route
           path="/invest/success/:investmentId"
