@@ -21,16 +21,18 @@ export default function AdminLayout({
   onRetry?: () => void;
   onDismissError?: () => void;
 }) {
-  const isOverview = useLocation().pathname === "/admin";
+  const pathname = useLocation().pathname;
+  const isOverview = pathname === "/admin";
+  const isExpanded = isOverview || pathname === "/admin/investors";
   return (
-    <div className={`flex min-h-dvh bg-white font-['Noto_Sans_KR',sans-serif] ${isOverview ? "min-w-480" : "min-w-319.25"}`}>
+    <div className={`flex min-h-dvh bg-white font-['Noto_Sans_KR',sans-serif] ${isExpanded ? "w-full min-w-0" : "min-w-319.25"}`}>
       <AdminSidebar
-        isExpanded={isOverview}
+        isExpanded={isExpanded}
         investmentStatus={investmentStatus}
         isUpdating={isUpdating}
         onStatusChange={onStatusChange}
       />
-      <main inert={isOverview && isUpdating} aria-busy={isOverview && isUpdating} className={`min-w-0 flex-1 ${isOverview ? "px-12 py-10.5" : "px-8 py-7"}`}>
+      <main inert={isOverview && isUpdating} aria-busy={isOverview && isUpdating} className={`min-w-0 flex-1 ${isExpanded ? "px-4 py-6 min-[1200px]:px-8 min-[1800px]:px-12 min-[1800px]:py-10.5" : "px-8 py-7"}`}>
         <Outlet context={{ investmentStatus } satisfies AdminOverviewContext} />
       </main>
       {isOverview && isUpdating && <LoadingOverlay variant="desktop" />}
