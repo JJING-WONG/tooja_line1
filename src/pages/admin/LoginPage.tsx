@@ -27,9 +27,7 @@ export default function AdminLoginPage({
           <h1 className="h-12.5 text-[36px] font-bold leading-12.5 text-[#111]">
             관리자 로그인
           </h1>
-          <p className="text-[19.5px] leading-6.75 text-[#888]">
-            운영진 전용 · 조회 기능만 제공됩니다
-          </p>
+          <p className="text-[19.5px] leading-6.75 text-[#888]">운영진 전용</p>
         </header>
         <label htmlFor="admin-code" className="sr-only">
           관리자 코드
