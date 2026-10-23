@@ -36,7 +36,19 @@ export default function InvestorDetailPage({
   previewEmpty?: boolean;
   previewSpendingStatus?: components["schemas"]["Investor"]["spendingStatus"];
 }) {
-  const transactions = previewEmpty ? [] : previewTransactions;
+  const isCompleted = previewSpendingStatus === "COMPLETED";
+  // 소진 완료 시안은 지급액·투자액·거래 합계가 일치하도록 표시합니다.
+  const metrics = previewMetrics.map((metric) => {
+    if (!isCompleted) return metric;
+    if (metric.label === "투자액") return { ...metric, value: "1,000,000원" };
+    if (metric.label === "남은 잔액") {
+      return { ...metric, value: "마일리지가 전부 소진되었어요", background: "bg-[#fdecec]" };
+    }
+    return metric;
+  });
+  const transactions = previewEmpty ? [] : previewTransactions.map((transaction, index) => (
+    isCompleted && index === 1 ? { ...transaction, amount: "500,000원" } : transaction
+  ));
   return (
     <div className="flex flex-col gap-4.5 min-[1800px]:gap-6.75">
       <nav
@@ -65,19 +77,22 @@ export default function InvestorDetailPage({
       </header>
 
       <dl className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3 min-[1800px]:gap-4.5">
-        {previewMetrics.map(({ label, value, background }) => (
+        {metrics.map(({ label, value, background }) => {
+          const isCompletedBalance = isCompleted && label === "남은 잔액";
+          return (
           <div
             key={label}
-            className={`${background} flex min-w-0 flex-1 flex-col gap-1 rounded-[10px] px-4.5 py-4 min-[1800px]:gap-1.5 min-[1800px]:rounded-[15px] min-[1800px]:px-6.75 min-[1800px]:py-6`}
+            className={`${background} flex min-w-0 flex-1 flex-col rounded-[10px] px-4.5 py-4 min-[1800px]:rounded-[15px] min-[1800px]:px-6.75 min-[1800px]:py-6 ${isCompletedBalance ? "gap-2 min-[1800px]:gap-[11px]" : "gap-1 min-[1800px]:gap-1.5"}`}
           >
             <dt className="text-[13px] leading-4.5 text-[#777] min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75">
               {label}
             </dt>
-            <dd className="wrap-break-word text-[22px] leading-7.75 min-[1800px]:text-[33px] min-[1800px]:leading-11.5 font-bold text-[#111]">
+            <dd className={`wrap-break-word ${isCompletedBalance ? "text-[17px] font-medium leading-6 text-[#ce6161] min-[1800px]:text-[25px] min-[1800px]:leading-8.75" : "text-[22px] leading-7.75 min-[1800px]:text-[33px] min-[1800px]:leading-11.5 font-bold text-[#111]"}`}>
               {value}
             </dd>
           </div>
-        ))}
+        );
+        })}
       </dl>
 
       <h2
