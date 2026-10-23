@@ -10,6 +10,8 @@ export default function AdminLayout({
   investmentStatus = "RUNNING",
   isUpdating = false,
   isInitialLoading = false,
+  isInitialError = false,
+  isRetryingInitial = false,
   showRefreshError = false,
   isRetryingRefresh = false,
   onStatusChange,
@@ -19,6 +21,8 @@ export default function AdminLayout({
   investmentStatus?: AdminOverviewContext["investmentStatus"];
   isUpdating?: boolean;
   isInitialLoading?: boolean;
+  isInitialError?: boolean;
+  isRetryingInitial?: boolean;
   showRefreshError?: boolean;
   isRetryingRefresh?: boolean;
   onStatusChange?: (status: AdminOverviewContext["investmentStatus"]) => void;
@@ -42,10 +46,29 @@ export default function AdminLayout({
         onStatusChange={onStatusChange}
       />
       <main inert={isOverview && isUpdating} aria-busy={isOverview && isUpdating} className={`min-w-0 flex-1 ${isExpanded ? "px-4 py-6 min-[1200px]:px-8 min-[1800px]:px-12 min-[1800px]:py-10.5" : "px-8 py-7"}`}>
-        <Outlet context={{ investmentStatus } satisfies AdminOverviewContext} />
+        {isInitialError ? (
+          <section
+            aria-labelledby="admin-initial-error-title"
+            aria-busy={isRetryingInitial}
+            className="flex min-h-[calc(100dvh-84px)] flex-col items-center justify-center gap-4 text-center"
+          >
+            <h1 id="admin-initial-error-title" role="alert" className="text-xl font-bold leading-7 text-[#222] min-[1800px]:text-2xl">
+              정보를 불러오지 못했어요
+            </h1>
+            <p className="text-sm leading-5 text-[#777] min-[1800px]:text-base">잠시 후 다시 시도해 주세요.</p>
+            <button
+              type="button"
+              disabled={isRetryingInitial}
+              onClick={() => { if (!isRetryingInitial) onRetry?.(); }}
+              className="min-h-11 rounded-lg bg-dark px-7 py-3 text-sm font-bold leading-5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 min-[1800px]:text-base"
+            >
+              {isRetryingInitial ? "다시 불러오는 중..." : "재시도"}
+            </button>
+          </section>
+        ) : <Outlet context={{ investmentStatus } satisfies AdminOverviewContext} />}
       </main>
       {isOverview && isUpdating && <LoadingOverlay variant="desktop" />}
-      {supportsAutoRefresh && showRefreshError && !isUpdating && <AdminRefreshErrorDialog isRetrying={isRetryingRefresh} onRetry={() => onRetry?.()} onDismiss={() => onDismissError?.()} />}
+      {supportsAutoRefresh && !isInitialError && showRefreshError && !isUpdating && <AdminRefreshErrorDialog isRetrying={isRetryingRefresh} onRetry={() => onRetry?.()} onDismiss={() => onDismissError?.()} />}
     </div>
   );
 }
