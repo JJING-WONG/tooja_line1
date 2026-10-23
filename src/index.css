@@ -31,3 +31,14 @@
     animation: investment-result-enter 300ms ease-out;
   }
 }
+
+@keyframes admin-loading-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-loading-enter {
+    animation: admin-loading-enter 200ms ease-out;
+  }
+}
