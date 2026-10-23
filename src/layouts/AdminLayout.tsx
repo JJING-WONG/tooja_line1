@@ -23,7 +23,7 @@ export default function AdminLayout({
 }) {
   const pathname = useLocation().pathname;
   const isOverview = pathname === "/admin";
-  const isExpanded = isOverview || pathname === "/admin/investors";
+  const isExpanded = isOverview || pathname === "/admin/investors" || pathname.startsWith("/admin/investors/");
   return (
     <div className={`flex min-h-dvh bg-white font-['Noto_Sans_KR',sans-serif] ${isExpanded ? "w-full min-w-0" : "min-w-319.25"}`}>
       <AdminSidebar

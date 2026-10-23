@@ -52,7 +52,11 @@ const spendingFilters = [
   { value: "COMPLETED", label: "소진 완료", width: "w-[131px]" },
 ];
 
-export default function InvestorListPage({ previewEmpty = false }: { previewEmpty?: boolean }) {
+export default function InvestorListPage({
+  previewEmpty = false,
+}: {
+  previewEmpty?: boolean;
+}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") ?? "";
@@ -105,13 +109,13 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
         <input
           type="search"
           aria-label="별칭 또는 ID 검색"
-          placeholder="🔍  별칭 · ID 검색"
+          placeholder="별칭 · ID 검색"
           value={query}
           onChange={(event) => updateFilter("q", event.target.value)}
           maxLength={100}
           className="h-11 w-65 max-w-full min-[1800px]:h-16.5 min-[1800px]:w-97.5 rounded-xl border-[1.5px] border-[#c4c4c4] bg-white px-5.25 text-[#333] placeholder:text-[#999]"
         />
-        <label className="relative h-11 w-32.5 min-[1800px]:h-16.5 min-[1800px]:w-48.75">
+        <label className="relative block h-11 w-32.5 shrink-0 min-[1800px]:h-16.5 min-[1800px]:w-48.75">
           <select
             aria-label="소속 팀"
             value={teamId}
@@ -127,12 +131,12 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
           </select>
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute top-3.25 left-5.625 min-[1800px]:top-[19.5px] text-[#555]"
+            className="pointer-events-none absolute inset-0 flex items-center whitespace-nowrap px-3.5 text-[#555] min-[1800px]:px-5.25"
           >
             {teamId ? `TEAM ${teamId.padStart(2, "0")}` : "팀 전체"} ▾
           </span>
         </label>
-        <label className="relative h-11 w-32.5 min-[1800px]:h-16.5 min-[1800px]:w-48.75">
+        <label className="relative block h-11 w-32.5 shrink-0 min-[1800px]:h-16.5 min-[1800px]:w-48.75">
           <select
             aria-label="역할"
             value={kind}
@@ -145,7 +149,7 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
           </select>
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute top-3.25 left-5.625 min-[1800px]:top-[19.5px] text-[#555]"
+            className="pointer-events-none absolute inset-0 flex items-center whitespace-nowrap px-3.5 text-[#555] min-[1800px]:px-5.25"
           >
             {kind === "STAFF"
               ? "운영팀"
@@ -173,7 +177,10 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
           ))}
         </div>
       </div>
-      <p aria-live="polite" className="text-[13px] leading-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75 text-[#777]">
+      <p
+        aria-live="polite"
+        className="text-[13px] leading-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75 text-[#777]"
+      >
         {resultCount === 0 ? "검색 결과 없음" : `검색 결과 ${resultCount}명`}
       </p>
       <div className="overflow-x-auto rounded-xl border-[1.5px] border-[#d0d0d0]">
@@ -208,7 +215,10 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
           <tbody className="text-[#333]">
             {investors.length === 0 && (
               <tr>
-                <td colSpan={7} className="h-[62.5px] border-b-[1.5px] border-[#e4e4e4] px-3.5 py-2.5 min-[1800px]:px-5.25 min-[1800px]:py-3.75 text-center">
+                <td
+                  colSpan={7}
+                  className="h-[62.5px] border-b-[1.5px] border-[#e4e4e4] px-3.5 py-2.5 min-[1800px]:px-5.25 min-[1800px]:py-3.75 text-center"
+                >
                   아직 투자자가 나오지 않았어요
                 </td>
               </tr>
@@ -253,9 +263,6 @@ export default function InvestorListPage({ previewEmpty = false }: { previewEmpt
           </tbody>
         </table>
       </div>
-      <p className="text-[18px] leading-6.25 text-[#999]">
-        행 클릭 → 투자자 상세(A04)
-      </p>
     </div>
   );
 }

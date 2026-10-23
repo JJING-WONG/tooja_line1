@@ -27,16 +27,21 @@ const previewTransactions = [
   },
 ];
 
-export default function InvestorDetailPage() {
+export default function InvestorDetailPage({
+  previewEmpty = false,
+}: {
+  previewEmpty?: boolean;
+}) {
+  const transactions = previewEmpty ? [] : previewTransactions;
   return (
-    <div className="flex flex-col gap-4.5">
+    <div className="flex flex-col gap-4.5 min-[1800px]:gap-6.75">
       <nav
         aria-label="현재 위치"
-        className="flex items-center gap-2 text-[13px] leading-4.5"
+        className="flex flex-wrap items-center gap-2 text-[13px] leading-4.5 min-[1800px]:gap-3 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75"
       >
         <Link
           to="/admin/investors"
-          className="w-18.25 shrink-0 text-[#888] whitespace-pre"
+          className="shrink-0 text-[#888] whitespace-pre"
         >
           투자자 목록 ›
         </Link>
@@ -45,26 +50,28 @@ export default function InvestorDetailPage() {
         </span>
       </nav>
 
-      <header className="flex h-8.5 items-center gap-3 whitespace-nowrap">
-        <h1 className="w-44 shrink-0 text-2xl leading-8.5 font-bold text-[#111]">
+      <header className="flex min-h-8.5 flex-wrap items-center gap-3 whitespace-nowrap min-[1800px]:min-h-12.5 min-[1800px]:gap-4.5">
+        <h1 className="min-w-0 wrap-break-word text-2xl leading-8.5 min-[1800px]:text-[36px] min-[1800px]:leading-12.5 font-bold text-[#111]">
           {previewInvestor.alias}
         </h1>
-        <span className="flex h-6.25 w-28.25 shrink-0 items-center rounded-full bg-[#ededed] px-2.5 text-xs leading-4.25 text-[#555]">
+        <span className="flex shrink-0 items-center rounded-full bg-[#ededed] px-2.5 py-1 text-xs leading-4.25 min-[1800px]:px-3.75 min-[1800px]:py-1.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 text-[#555]">
           참가자 · <span className="font-sans">{previewInvestor.team}</span>
         </span>
-        <span className="w-13.5 rounded-full bg-[#fdecec] py-1 text-center text-xs leading-4.25 font-bold text-[#b42318]">
+        <span className="rounded-full bg-[#fdecec] px-2.5 py-1 text-center text-xs leading-4.25 min-[1800px]:px-3.75 min-[1800px]:py-1.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 font-bold text-[#b42318]">
           미소진
         </span>
       </header>
 
-      <dl className="flex gap-3 whitespace-nowrap">
+      <dl className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3 min-[1800px]:gap-4.5">
         {previewMetrics.map(({ label, value, background }) => (
           <div
             key={label}
-            className={`${background} flex min-w-0 flex-1 flex-col gap-1 rounded-[10px] px-4.5 py-4`}
+            className={`${background} flex min-w-0 flex-1 flex-col gap-1 rounded-[10px] px-4.5 py-4 min-[1800px]:gap-1.5 min-[1800px]:rounded-[15px] min-[1800px]:px-6.75 min-[1800px]:py-6`}
           >
-            <dt className="text-[13px] leading-4.5 text-[#777]">{label}</dt>
-            <dd className="text-[22px] leading-7.75 font-bold text-[#111]">
+            <dt className="text-[13px] leading-4.5 text-[#777] min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75">
+              {label}
+            </dt>
+            <dd className="wrap-break-word text-[22px] leading-7.75 min-[1800px]:text-[33px] min-[1800px]:leading-11.5 font-bold text-[#111]">
               {value}
             </dd>
           </div>
@@ -73,18 +80,18 @@ export default function InvestorDetailPage() {
 
       <h2
         id="transaction-history-title"
-        className="text-base leading-5.5 font-bold text-[#222]"
+        className="text-base leading-5.5 min-[1800px]:text-[24px] min-[1800px]:leading-8.5 font-bold text-[#222]"
       >
         거래 내역 (최신순)
       </h2>
-      <div className="h-29.5 overflow-hidden rounded-lg border border-[#d0d0d0]">
+      <div className="overflow-x-auto rounded-lg border min-[1800px]:rounded-xl min-[1800px]:border-[1.5px] border-[#d0d0d0]">
         <table
           aria-labelledby="transaction-history-title"
-          className="w-full table-fixed border-separate border-spacing-0 text-left text-[13px] leading-4.5 whitespace-nowrap"
+          className="w-full min-w-175 table-fixed border-separate border-spacing-0 text-left text-[13px] leading-4.5 whitespace-nowrap min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75"
         >
           <colgroup>
-            <col className="w-55" />
-            <col className="w-75" />
+            <col className="w-[22%]" />
+            <col className="w-[30%]" />
             <col />
           </colgroup>
           <thead className="bg-[#ededed] text-[#444]">
@@ -93,7 +100,7 @@ export default function InvestorDetailPage() {
                 <th
                   key={label}
                   scope="col"
-                  className="border-b border-[#e4e4e4] px-3.5 py-2.5 font-bold"
+                  className="border-b border-[#e4e4e4] px-3.5 py-2.5 font-bold min-[1800px]:border-b-[1.5px] min-[1800px]:px-5.25 min-[1800px]:py-3.75"
                 >
                   {label}
                 </th>
@@ -101,14 +108,24 @@ export default function InvestorDetailPage() {
             </tr>
           </thead>
           <tbody className="text-[#333]">
-            {previewTransactions.map(({ time, team, name, amount }) => (
+            {transactions.length === 0 && (
+              <tr>
+                <td
+                  colSpan={3}
+                  className="border-b border-[#e4e4e4] px-3.5 py-2.5 text-center min-[1800px]:border-b-[1.5px] min-[1800px]:px-5.25 min-[1800px]:py-3.75"
+                >
+                  아직 투자한 팀이 없어요
+                </td>
+              </tr>
+            )}
+            {transactions.map(({ time, team, name, amount }) => (
               <tr
                 key={`${time}-${team}`}
-                className="[&>td]:border-b [&>td]:border-[#e4e4e4] [&>td]:px-3.5 [&>td]:py-2.5"
+                className="[&>td]:border-b [&>td]:border-[#e4e4e4] [&>td]:px-3.5 [&>td]:py-2.5 min-[1800px]:[&>td]:border-b-[1.5px] min-[1800px]:[&>td]:px-5.25 min-[1800px]:[&>td]:py-3.75"
               >
                 <td>{time}</td>
                 <td>
-                  <div className="flex h-4.5 items-center">
+                  <div className="flex h-4.5 items-center min-[1800px]:h-6.75">
                     <span className="font-sans">{team}</span>
                     <span className="whitespace-pre"> · {name}</span>
                   </div>
@@ -120,7 +137,7 @@ export default function InvestorDetailPage() {
         </table>
       </div>
 
-      <p className="rounded-lg bg-[#f4f4f4] px-3.5 py-3 text-xs leading-4.25 text-[#777]">
+      <p className="rounded-lg bg-[#f4f4f4] px-3.5 py-3 text-xs leading-4.25 min-[1800px]:rounded-xl min-[1800px]:px-5.25 min-[1800px]:py-4.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 text-[#777]">
         잔액 수정 · 투자 취소 기능 없음 (조회 전용)
       </p>
     </div>
