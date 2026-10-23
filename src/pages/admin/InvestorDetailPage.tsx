@@ -1,3 +1,5 @@
+import SpendingStatusBadge from "../../features/admin/components/SpendingStatusBadge";
+import type { components } from "../../apis/schema";
 import { Link } from "react-router-dom";
 
 // Figma A04 시안 데이터입니다. 실제 투자자 ID별 조회는 API 연결 시 적용합니다.
@@ -29,8 +31,10 @@ const previewTransactions = [
 
 export default function InvestorDetailPage({
   previewEmpty = false,
+  previewSpendingStatus = "UNSPENT",
 }: {
   previewEmpty?: boolean;
+  previewSpendingStatus?: components["schemas"]["Investor"]["spendingStatus"];
 }) {
   const transactions = previewEmpty ? [] : previewTransactions;
   return (
@@ -57,9 +61,7 @@ export default function InvestorDetailPage({
         <span className="flex shrink-0 items-center rounded-full bg-[#ededed] px-2.5 py-1 text-xs leading-4.25 min-[1800px]:px-3.75 min-[1800px]:py-1.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 text-[#555]">
           참가자 · <span className="font-sans">{previewInvestor.team}</span>
         </span>
-        <span className="rounded-full bg-[#fdecec] px-2.5 py-1 text-center text-xs leading-4.25 min-[1800px]:px-3.75 min-[1800px]:py-1.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 font-bold text-[#b42318]">
-          미소진
-        </span>
+        <SpendingStatusBadge status={previewSpendingStatus} />
       </header>
 
       <dl className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-3 min-[1800px]:gap-4.5">

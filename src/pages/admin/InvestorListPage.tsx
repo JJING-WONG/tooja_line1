@@ -1,3 +1,5 @@
+import SpendingStatusBadge from "../../features/admin/components/SpendingStatusBadge";
+import type { components } from "../../apis/schema";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 // A03 시안의 6개 행입니다. 실제 목록·전체 건수·자동 갱신은 API 연결 시 교체합니다.
@@ -54,8 +56,10 @@ const spendingFilters = [
 
 export default function InvestorListPage({
   previewEmpty = false,
+  previewSpendingStatus = "UNSPENT",
 }: {
   previewEmpty?: boolean;
+  previewSpendingStatus?: components["schemas"]["Investor"]["spendingStatus"];
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -189,7 +193,7 @@ export default function InvestorListPage({
           className="w-full min-w-250 table-fixed border-separate border-spacing-0 text-left text-[13px] leading-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75 whitespace-nowrap"
         >
           <colgroup>
-            <col className="w-[23%]" />
+            <col className="w-[20%]" />
             <col className="w-[12%]" />
             <col className="w-[11%]" />
             <col className="w-[15%]" />
@@ -254,9 +258,7 @@ export default function InvestorListPage({
                   원
                 </td>
                 <td>
-                  <span className="inline-block w-13.5 rounded-full bg-[#fdecec] py-0.5 text-center text-xs leading-4.25 min-[1800px]:w-20.25 min-[1800px]:py-0.75 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 font-bold text-[#b42318]">
-                    미소진
-                  </span>
+                  <SpendingStatusBadge status={previewSpendingStatus} />
                 </td>
               </tr>
             ))}
