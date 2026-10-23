@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import successIcon from "../../assets/InvestmentSuccess.svg";
+import accessUnavailableIcon from "../../assets/AccessUnavailable.svg";
 
 // P04 디자인 확인용 시안 데이터. 거래 결과 조회 API 연결 시 교체합니다.
 const preview = {
@@ -10,13 +11,28 @@ const preview = {
   balance: 500_000,
 };
 
-export default function InvestmentSuccessPage() {
+export default function InvestmentSuccessPage({
+  previewStatus = "success",
+  previewBalance = preview.balance,
+  isRetrying = false,
+  onRetry,
+}: {
+  previewStatus?: "success" | "unavailable" | "error";
+  previewBalance?: number;
+  isRetrying?: boolean;
+  onRetry?: () => void;
+}) {
   const teamLabel = `TEAM ${String(preview.teamId).padStart(2, "0")}`;
+  // 상태별 UI 확인용 값입니다. 거래 ID별 API 조회는 아직 연결하지 않습니다.
+  const isUnavailable = previewStatus === "unavailable";
+  const isError = previewStatus === "error";
+  const hasResult = !isUnavailable && !isError;
+  const isCompleted = hasResult && previewBalance === 0;
 
   return (
     <main className="min-h-dvh bg-white text-[#222] font-['Noto_Sans_KR',sans-serif]">
       <div className="mx-auto flex min-h-dvh w-full max-w-93.75 flex-col gap-3 px-[19.5px] pb-[21.5px] pt-[118.5px]">
-        <header className="flex shrink-0 flex-col items-center gap-2.5 text-center">
+        {!hasResult ? <div aria-hidden="true" className="h-36.5 shrink-0" /> : <header className="flex shrink-0 flex-col items-center gap-2.5 text-center">
           <div className="size-18">
             <img src={successIcon} alt="" />
           </div>
@@ -27,10 +43,22 @@ export default function InvestmentSuccessPage() {
             <span className="font-[Anta,sans-serif]">{teamLabel}</span>에{" "}
             {preview.amount.toLocaleString("ko-KR")}원을 투자했어요
           </p>
-        </header>
+        </header>}
 
         <div aria-hidden="true" className="h-6 shrink-0" />
 
+        {!hasResult ? (
+          <div role="alert" className="flex h-12 shrink-0 items-center gap-[7px] rounded-xl bg-[#fdecec] px-4">
+            <img src={accessUnavailableIcon} alt="" className="shrink-0" />
+            <h1 className="text-[13px] font-bold leading-4.5 text-[#ce6161]">{isError ? "거래 정보를 불러오지 못했어요" : "지금은 접근할 수 없어요"}</h1>
+          </div>
+        ) : isCompleted ? (
+          <p role="status" className="flex h-12 shrink-0 items-center rounded-xl bg-[#f4f4f4] px-4 text-[15px] font-medium leading-5.25 text-[#989898]">투자 금액을 모두 소진했어요</p>
+        ) : <div aria-hidden="true" className="h-12 shrink-0" />}
+
+        {isError && <p className="px-4 text-[14px] leading-5 text-[#777]">잠시 후 다시 시도해 주세요.</p>}
+
+        {hasResult && <>
         <dl className="flex shrink-0 flex-col gap-3 rounded-xl bg-[#f4f4f4] p-4">
           <div className="flex h-5 items-center justify-between gap-2">
             <dt className="shrink-0 text-[14px] leading-5 text-[#777]">
@@ -58,16 +86,31 @@ export default function InvestmentSuccessPage() {
         <div className="flex h-16.25 shrink-0 items-center justify-between rounded-xl border border-[#bdbdbd] bg-white p-4">
           <span className="text-[14px] leading-5 text-[#777]">남은 투자금</span>
           <span className="text-[22px] font-bold leading-7.75">
-            {preview.balance.toLocaleString("ko-KR")}원
+            {previewBalance.toLocaleString("ko-KR")}원
           </span>
         </div>
+        </>}
 
-        <div className="min-h-35.75 flex-1" />
+        <div className="min-h-20.75 flex-1" />
+        {isError ? <>
+          <button
+            type="button"
+            disabled={isRetrying}
+            aria-busy={isRetrying}
+            onClick={() => {
+              if (!isRetrying) onRetry?.();
+            }}
+            className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
+          >
+            {isRetrying ? "불러오는 중…" : "다시 시도"}
+          </button>
+          <Link to="/invest" className="flex h-12.5 shrink-0 items-center justify-center rounded-lg border border-[#bdbdbd] bg-white text-[15px] font-bold leading-5.25 text-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">부스 목록으로 돌아가기</Link>
+        </> : <>
         <Link
           to="/invest"
           className="flex h-13.5 shrink-0 items-center justify-center rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          다른 부스 보기
+          부스 목록으로 돌아가기
         </Link>
         <Link
           to="/invest/history"
@@ -75,6 +118,7 @@ export default function InvestmentSuccessPage() {
         >
           내 투자 내역
         </Link>
+        </>}
       </div>
     </main>
   );
