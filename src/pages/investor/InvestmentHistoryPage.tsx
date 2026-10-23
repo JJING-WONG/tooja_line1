@@ -1,5 +1,6 @@
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
-import { Link } from "react-router-dom";
+import ErrorDialog from "../../components/ui/ErrorDialog";
+import { Link, useNavigate } from "react-router-dom";
 
 // P05 디자인 확인용 데이터. 내 투자 내역 API 연결 시 서버 응답으로 교체합니다.
 const previewInvestments = [
@@ -21,6 +22,7 @@ export default function InvestmentHistoryPage({
   isRetrying?: boolean;
   onRetry?: () => void;
 }) {
+  const navigate = useNavigate();
   const investments = previewEmpty ? [] : previewInvestments;
 
   // API 연결 전 UI 상태입니다. 최초 조회 중에는 시안 금액·내역을 표시하지 않습니다.
@@ -38,18 +40,14 @@ export default function InvestmentHistoryPage({
         </header>
 
         {isError ? (
-          <section aria-busy={isRetrying} className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[14px] text-center">
-            <h2 role="alert" className="text-[16px] font-bold leading-5.5">투자 내역을 불러오지 못했어요</h2>
-            <p className="text-[14px] leading-5 text-[#777]">잠시 후 다시 시도해 주세요.</p>
-            <button
-              type="button"
-              disabled={isRetrying}
-              onClick={() => { if (!isRetrying) onRetry?.(); }}
-              className="mt-1 min-h-11 rounded-lg bg-dark px-6 py-3 text-[14px] font-bold leading-5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
-            >
-              {isRetrying ? "불러오는 중…" : "다시 시도"}
-            </button>
-          </section>
+          <ErrorDialog
+            title="투자 내역을 불러오지 못했어요"
+            message="잠시 후 다시 시도해 주세요."
+            confirmLabel="재시도"
+            isBusy={isRetrying}
+            onConfirm={() => onRetry?.()}
+            onBack={() => navigate("/invest")}
+          />
         ) : <>
         <p className="h-4.25 shrink-0 text-[12px] leading-4.25 text-[#888]">
           최신순 · {investments.length}건

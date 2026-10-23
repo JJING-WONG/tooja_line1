@@ -1,3 +1,4 @@
+import ErrorDialog from "../../../components/ui/ErrorDialog";
 import { useEffect, useRef } from "react";
 
 interface InvestmentConfirmDialogProps {
@@ -6,7 +7,8 @@ interface InvestmentConfirmDialogProps {
   balanceAfter: number;
   onClose: () => void;
   onConfirm?: () => void;
-  status?: "idle" | "submitting" | "checking";
+  errorMessage?: string;
+  status?: "idle" | "submitting" | "checking" | "error";
 }
 
 export default function InvestmentConfirmDialog({
@@ -16,20 +18,25 @@ export default function InvestmentConfirmDialog({
   onClose,
   onConfirm,
   status = "idle",
+  errorMessage = "잠시 후 다시 시도해 주세요.",
 }: InvestmentConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
-  const isBusy = status !== "idle";
+  const isBusy = status === "submitting" || status === "checking";
   const isChecking = status === "checking";
 
   useEffect(() => {
     const dialog = ref.current;
     const previousFocus = document.activeElement;
-    dialog?.showModal();
+    if (status !== "error") dialog?.showModal();
     return () => {
       dialog?.close();
       if (previousFocus instanceof HTMLElement) previousFocus.focus();
     };
-  }, []);
+  }, [status]);
+
+  if (status === "error") {
+    return <ErrorDialog title="투자하지 못했어요" message={errorMessage} confirmLabel="돌아가기" onConfirm={onClose} />;
+  }
 
   return (
     <dialog
@@ -39,7 +46,7 @@ export default function InvestmentConfirmDialog({
       aria-busy={isBusy}
       onCancel={(event) => {
         event.preventDefault();
-        if (!isChecking) onClose();
+        if (!isBusy) onClose();
       }}
       className="fixed inset-x-0 bottom-[21.5px] top-auto mx-auto my-0 w-[calc(100%-39px)] max-w-84 max-h-[calc(100dvh-43px)] overflow-y-auto border-0 bg-transparent p-0 text-[#222] backdrop:bg-black/[0.443] font-['Noto_Sans_KR',sans-serif]"
     >
@@ -90,7 +97,7 @@ export default function InvestmentConfirmDialog({
           <button
             autoFocus
             type="button"
-            disabled={isChecking}
+            disabled={isBusy}
             onClick={onClose}
             className="h-12.5 min-w-0 flex-1 cursor-pointer rounded-lg border border-[#bdbdbd] bg-white text-[15px] font-bold leading-5.25 text-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:bg-[#bdbdbd] disabled:text-[#333]/50"
           >
