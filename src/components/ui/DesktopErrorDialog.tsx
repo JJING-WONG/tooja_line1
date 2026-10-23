@@ -6,11 +6,13 @@ export default function DesktopErrorDialog({
   isRetrying = false,
   title = <>오류가 발생해<br />갱신하지 못했어요</>,
   dimBackground = false,
+  confirmLabel = "재시도",
 }: {
   onRetry: () => void;
   onDismiss?: () => void;
   title?: import("react").ReactNode;
   dimBackground?: boolean;
+  confirmLabel?: string;
   isRetrying?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -40,7 +42,7 @@ export default function DesktopErrorDialog({
       </h2>
       <div className="mt-[24.347px] flex w-[521.275px] max-w-full gap-[9.275px] text-[17.39px] font-bold leading-6">
         {onDismiss && <button type="button" onClick={dismiss} disabled={isRetrying} className="h-14.75 w-34.75 shrink-0 rounded-[9.275px] border border-[#bdbdbd] text-[#333] focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60">돌아가기</button>}
-        <button type="button" onClick={() => { if (!isRetrying) onRetry(); }} disabled={isRetrying} className="h-14.75 min-w-0 flex-1 rounded-[9.275px] bg-dark text-white focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60">{isRetrying ? "재시도 중..." : "재시도"}</button>
+        <button type="button" onClick={() => { if (!isRetrying) onRetry(); }} disabled={isRetrying} className="h-14.75 min-w-0 flex-1 rounded-[9.275px] bg-dark text-white focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60">{isRetrying ? "재시도 중..." : confirmLabel}</button>
       </div>
     </dialog>
   );

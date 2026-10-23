@@ -1,6 +1,7 @@
 import SpendingStatusBadge from "../../features/admin/components/SpendingStatusBadge";
 import type { components } from "../../apis/schema";
-import { Link } from "react-router-dom";
+import DesktopErrorDialog from "../../components/ui/DesktopErrorDialog";
+import { Link, useNavigate } from "react-router-dom";
 
 // Figma A04 시안 데이터입니다. 실제 투자자 ID별 조회는 API 연결 시 적용합니다.
 const previewInvestor = {
@@ -31,14 +32,23 @@ const previewTransactions = [
 
 export default function InvestorDetailPage({
   previewEmpty = false,
+  previewKind = "PARTICIPANT",
+  isNotFound = false,
   previewSpendingStatus = "UNSPENT",
 }: {
   previewEmpty?: boolean;
+  previewKind?: components["schemas"]["Investor"]["kind"];
+  isNotFound?: boolean;
   previewSpendingStatus?: components["schemas"]["Investor"]["spendingStatus"];
 }) {
+  const navigate = useNavigate();
+  const isUnpaid = previewSpendingStatus === "NOT_ACTIVATED";
+  const isStaff = previewKind === "STAFF";
+  const alias = isStaff ? "운영팀 투자자 003" : previewInvestor.alias;
   const isCompleted = previewSpendingStatus === "COMPLETED";
   // 소진 완료 시안은 지급액·투자액·거래 합계가 일치하도록 표시합니다.
   const metrics = previewMetrics.map((metric) => {
+    if (isUnpaid) return { ...metric, value: "0원" };
     if (!isCompleted) return metric;
     if (metric.label === "투자액") return { ...metric, value: "1,000,000원" };
     if (metric.label === "남은 잔액") {
@@ -50,13 +60,20 @@ export default function InvestorDetailPage({
     }
     return metric;
   });
-  const transactions = previewEmpty
+  const transactions = previewEmpty || isUnpaid
     ? []
     : previewTransactions.map((transaction, index) =>
         isCompleted && index === 1
           ? { ...transaction, amount: "500,000원" }
           : transaction,
       );
+  if (isNotFound) {
+    return <DesktopErrorDialog
+      title={<>투자자를 찾을 수 없어요<br />투자자 목록에서 다시 확인해 주세요</>}
+      confirmLabel="투자자 목록으로"
+      onRetry={() => navigate("/admin/investors")}
+    />;
+  }
   return (
     <div className="flex flex-col gap-4.5 min-[1800px]:gap-6.75">
       <nav
@@ -70,16 +87,16 @@ export default function InvestorDetailPage({
           투자자 목록 ›
         </Link>
         <span aria-current="page" className="font-bold text-[#333]">
-          {previewInvestor.alias}
+          {alias}
         </span>
       </nav>
 
       <header className="flex min-h-8.5 flex-wrap items-center gap-3 whitespace-nowrap min-[1800px]:min-h-12.5 min-[1800px]:gap-4.5">
         <h1 className="min-w-0 wrap-break-word text-2xl leading-8.5 min-[1800px]:text-[36px] min-[1800px]:leading-12.5 font-bold text-[#111]">
-          {previewInvestor.alias}
+          {alias}
         </h1>
         <span className="flex shrink-0 items-center rounded-full bg-[#ededed] px-2.5 py-1 text-xs leading-4.25 min-[1800px]:px-3.75 min-[1800px]:py-1.5 min-[1800px]:text-[18px] min-[1800px]:leading-6.25 text-[#555]">
-          참가자 · <span className="font-sans">{previewInvestor.team}</span>
+          {isStaff ? "운영팀" : <>참가자 · <span className="font-sans">{previewInvestor.team}</span></>}
         </span>
         <SpendingStatusBadge status={previewSpendingStatus} />
       </header>
