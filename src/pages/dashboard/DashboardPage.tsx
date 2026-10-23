@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import DesktopErrorDialog from "../../components/ui/DesktopErrorDialog";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import dashboardLogo from "../../assets/DashboardLogo.png";
 
@@ -31,11 +32,17 @@ const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 export default function DashboardPage({
   previewMode = "normal",
   isInitialLoading = false,
+  isInitialError = false,
+  isRetrying = false,
+  onRetry,
   connectionStatus = "connected",
   lastUpdatedAt = "14:32:05",
 }: {
   previewMode?: "normal" | "tied" | "zero";
   isInitialLoading?: boolean;
+  isInitialError?: boolean;
+  isRetrying?: boolean;
+  onRetry?: () => void;
   connectionStatus?: "connected" | "reconnecting";
   lastUpdatedAt?: string;
 }) {
@@ -93,6 +100,13 @@ export default function DashboardPage({
     >
       {isInitialLoading ? (
         <LoadingOverlay variant="desktop" mode="initial" theme="dark" />
+      ) : isInitialError ? (
+        <DesktopErrorDialog
+          title={<>순위 정보를<br />불러오지 못했어요</>}
+          dimBackground
+          isRetrying={isRetrying}
+          onRetry={() => onRetry?.()}
+        />
       ) : <div
         className="relative shrink-0"
         style={{ width: 1600 * scale, height: 900 * scale }}
