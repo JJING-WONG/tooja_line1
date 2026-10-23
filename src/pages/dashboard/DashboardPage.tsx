@@ -22,12 +22,24 @@ const previewRanking = [
   { team: 19, amount: 3000000, bar: 224, change: 0 },
   { team: 10, amount: 2600000, bar: 194, change: 0 },
   { team: 13, amount: 1600000, bar: 120, change: 0 },
-  { team: 16, amount: 1000000, bar: 75, change: 0 },
+  { team: 16, amount: 0, bar: 0, change: 0 },
 ];
 
 const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 
-export default function DashboardPage() {
+export default function DashboardPage({
+  previewMode = "normal",
+}: {
+  previewMode?: "normal" | "tied" | "zero";
+}) {
+  // 상태별 디자인 확인용 데이터입니다. 실제 조회 연결 시 응답의 rank를 사용합니다.
+  const ranking = previewRanking.map((item, index) =>
+    previewMode === "zero"
+      ? { ...item, amount: 0, bar: 0, change: 0 }
+      : previewMode === "tied" && index === 1
+        ? { ...item, amount: previewRanking[0].amount, bar: previewRanking[0].bar }
+        : item,
+  );
   const containerRef = useRef<HTMLElement>(null);
   const [scale, setScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -77,7 +89,7 @@ export default function DashboardPage() {
         style={{ width: 1600 * scale, height: 900 * scale }}
       >
         <div
-          className="absolute top-0 left-0 flex h-225 w-[1600px] origin-top-left flex-col gap-1 overflow-hidden bg-[#1f2329] px-8 py-6"
+          className="absolute top-0 left-0 flex h-225 w-[1600px] origin-top-left flex-col gap-1 overflow-hidden rounded-xl border-[1.5px] border-[#bdbdbd] bg-[#1f2329] px-8 py-6"
           style={{ transform: `scale(${scale})` }}
         >
           <header className="flex h-[85.5px] shrink-0 items-center gap-6 pb-3 whitespace-nowrap">
@@ -102,7 +114,7 @@ export default function DashboardPage() {
                   총 투자액
                 </dt>
                 <dd className="text-[22px] leading-7.75 font-bold text-white">
-                  98,400,000원
+                  {previewMode === "zero" ? "0원" : "98,400,000원"}
                 </dd>
               </div>
               <div className="w-15 shrink-0">
@@ -110,7 +122,7 @@ export default function DashboardPage() {
                   참여 인원
                 </dt>
                 <dd className="text-[22px] leading-7.75 font-bold text-white">
-                  120명
+                  {previewMode === "zero" ? "0명" : "120명"}
                 </dd>
               </div>
             </dl>
@@ -154,8 +166,9 @@ export default function DashboardPage() {
               ))}
             </div>
             <div role="rowgroup" className="flex flex-col gap-0.75">
-              {previewRanking.map(({ team, amount, bar, change }, index) => {
-                const highlighted = team === 12;
+              {ranking.map(({ team, amount, bar, change }) => {
+                const rank = ranking.findIndex((item) => item.amount === amount) + 1;
+                const highlighted = previewMode !== "zero" && team === 12;
                 return (
                   <div
                     key={team}
@@ -164,9 +177,13 @@ export default function DashboardPage() {
                   >
                     <span
                       role="cell"
-                      className={`text-[15px] leading-5.25 font-bold ${index < 3 ? "text-white" : "text-[#9ca3af]"}`}
+                      className={`text-[15px] leading-5.25 font-bold ${rank <= 3 ? "text-white" : "text-[#9ca3af]"}`}
                     >
-                      {index + 1}
+                      {rank <= 2 ? (
+                        <span className={`flex size-6 items-center justify-center rounded-full text-black ${rank === 1 ? "bg-[#fff5ab]" : "bg-[#e4e4e4]"}`}>
+                          {rank}
+                        </span>
+                      ) : rank}
                     </span>
                     <span
                       role="cell"
