@@ -17,21 +17,21 @@ export default function BoothItem({
 }) {
   const isSelf = !isStaff && team.investmentState === "SELF_TEAM";
   const hasInvestment = team.myInvestmentAmount > 0;
+  const isInvested = team.investmentState === "ALREADY_INVESTED" || hasInvestment;
+  const isDisabled = isSelf || isInvested;
   const isGray = isCompleted || team.investmentState === "BALANCE_EXHAUSTED";
   const label = `TEAM ${String(team.teamId).padStart(2, "0")}`;
-  const color = isSelf
-    ? "border-[1.117px] border-dashed border-[#a9a9a9] bg-[#d0d0d0]/50 text-[#a9a9a9]"
+  const color = isDisabled
+    ? `border-[1.117px] ${isSelf ? "border-dashed" : "border-solid"} border-[#a9a9a9] bg-[#d0d0d0]/50 text-[#a9a9a9]`
     : isGray
       ? "bg-[#d0d0d0]/50 text-[#777]"
-      : hasInvestment
-        ? "bg-secondary text-white"
-        : "bg-primary/50 text-black";
+      : "bg-primary/50 text-black";
   const content = (
     <>
       <span>{label}</span>
       {hasInvestment && (
         <span
-          className={`text-[2.33cqw] ${isGray || isSelf ? "text-[#777]" : "text-[#e7ddff]"}`}
+          className={`text-[2.33cqw] ${isGray || isDisabled ? "text-[#777]" : "text-[#e7ddff]"}`}
         >
           {team.myInvestmentAmount.toLocaleString("ko-KR")}
         </span>
@@ -40,9 +40,9 @@ export default function BoothItem({
   );
   const className = `flex h-full w-full flex-col items-center justify-center gap-px rounded-[5.583px] text-[2.66cqw] leading-[1.2] ${color}`;
 
-  return isSelf ? (
+  return isDisabled ? (
     <span
-      aria-label={`${label}, 내 팀, 선택 불가`}
+      aria-label={`${label}, ${isSelf ? "내 팀" : `투자 완료 ${team.myInvestmentAmount.toLocaleString("ko-KR")}원`}, 선택 불가`}
       aria-disabled="true"
       className={className}
     >
