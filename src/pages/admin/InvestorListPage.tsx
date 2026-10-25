@@ -1,52 +1,10 @@
 import SpendingStatusBadge from "../../features/admin/components/SpendingStatusBadge";
-import type { components } from "../../apis/schema";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-
-// A03 시안의 6개 행입니다. 실제 목록·전체 건수·자동 갱신은 API 연결 시 교체합니다.
-const previewInvestors = [
-  {
-    id: "preview-participant-004",
-    alias: "팀 01 투자자 004",
-    kind: "PARTICIPANT",
-    teamId: 1,
-    investedAmount: 700000,
-  },
-  {
-    id: "preview-participant-012",
-    alias: "팀 03 투자자 012",
-    kind: "PARTICIPANT",
-    teamId: 3,
-    investedAmount: 700000,
-  },
-  {
-    id: "preview-participant-002",
-    alias: "팀 07 투자자 002",
-    kind: "PARTICIPANT",
-    teamId: 7,
-    investedAmount: 0,
-  },
-  {
-    id: "preview-participant-005",
-    alias: "팀 12 투자자 005",
-    kind: "PARTICIPANT",
-    teamId: 12,
-    investedAmount: 900000,
-  },
-  {
-    id: "preview-staff-003",
-    alias: "운영팀 투자자 003",
-    kind: "STAFF",
-    teamId: null,
-    investedAmount: 500000,
-  },
-  {
-    id: "preview-staff-008",
-    alias: "운영팀 투자자 008",
-    kind: "STAFF",
-    teamId: null,
-    investedAmount: 600000,
-  },
-];
+import { useEffect, useState } from "react";
+import LoadingOverlay from "../../components/ui/LoadingOverlay";
+import AdminRefreshErrorDialog from "../../features/admin/components/AdminRefreshErrorDialog";
+import { parseInvestorFilters, useAdminInvestors } from "../../features/admin/hooks/useAdminInvestors";
+import type { AdminOverviewContext } from "../../layouts/AdminLayout";
+import { Link, useNavigate, useSearchParams, useOutletContext } from "react-router-dom";
 
 const spendingFilters = [
   { value: "ALL", label: "전체", width: "w-22.5" },
@@ -54,19 +12,36 @@ const spendingFilters = [
   { value: "COMPLETED", label: "소진 완료", width: "w-[131px]" },
 ];
 
-export default function InvestorListPage({
-  previewEmpty = false,
-  previewSpendingStatus = "UNSPENT",
-}: {
-  previewEmpty?: boolean;
-  previewSpendingStatus?: components["schemas"]["Investor"]["spendingStatus"];
-}) {
+export default function InvestorListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const query = searchParams.get("q") ?? "";
-  const teamId = searchParams.get("teamId") ?? "";
-  const kind = searchParams.get("kind") ?? "";
-  const spendingStatus = searchParams.get("spendingStatus") ?? "UNSPENT";
+  const layout = useOutletContext<AdminOverviewContext>();
+  const filters = parseInvestorFilters(searchParams);
+  const query = filters.q ?? "";
+  const teamId = filters.teamId ? String(filters.teamId) : "";
+  const kind = filters.kind ?? "";
+  const spendingStatus = filters.spendingStatus ?? "ALL";
+  const [settledQuery, setSettledQuery] = useState(query);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledQuery(query), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  const isDebouncing = query !== settledQuery;
+  const list = useAdminInvestors(filters, !isDebouncing);
+  const filterKey = JSON.stringify(filters);
+  const [initialFilterKey] = useState(filterKey);
+  const [dismissedError, setDismissedError] = useState<{ filterKey: string; updatedAt: number } | null>(null);
+  const investors = isDebouncing ? [] : list.data?.items ?? [];
+  const resultCount = list.data?.count ?? 0;
+  const isLoading = isDebouncing || (!list.data && !list.isError && list.errorUpdatedAt === 0);
+  const isInitialError = !isDebouncing && !list.data && (list.isError || list.errorUpdatedAt > 0);
+  const showRefreshError = !isDebouncing && list.data !== undefined && list.isError &&
+    (dismissedError?.filterKey !== filterKey || dismissedError.updatedAt !== list.dataUpdatedAt);
+  const retry = () => {
+    if (!isDebouncing && !list.isFetching && !layout?.isUpdating && !layout?.isLoggingOut) void list.refetch();
+  };
+  // 최초 진입은 공통 PC 로딩. 조건 변경 중에는 필터를 유지하고 표 영역만 조회 중으로 표시합니다.
+  const showInitialLoading = !isDebouncing && isLoading && filterKey === initialFilterKey;
 
   function updateFilter(name: string, value: string) {
     setSearchParams(
@@ -79,22 +54,6 @@ export default function InvestorListPage({
       { replace: true },
     );
   }
-
-  const investors = (previewEmpty ? [] : previewInvestors).filter(
-    (investor) =>
-      (!query ||
-        `${investor.alias} ${investor.id}`
-          .toLowerCase()
-          .includes(query.toLowerCase())) &&
-      (!teamId || investor.teamId === Number(teamId)) &&
-      (!kind || investor.kind === kind) &&
-      spendingStatus !== "COMPLETED",
-  );
-  // 기본 시안은 검색 결과 52명 중 6개 행만 그려져 있습니다.
-  const resultCount =
-    !previewEmpty && !query && !teamId && !kind && spendingStatus === "UNSPENT"
-      ? 52
-      : investors.length;
 
   return (
     <div className="flex flex-col gap-6.75">
@@ -181,11 +140,21 @@ export default function InvestorListPage({
           ))}
         </div>
       </div>
+      {showInitialLoading && <LoadingOverlay variant="desktop" mode="initial" />}
+      {isInitialError ? (
+        <section aria-busy={list.isFetching} className="flex min-h-[50dvh] flex-col items-center justify-center gap-4 text-center">
+          <h2 role="alert" className="text-xl font-bold text-[#222] min-[1800px]:text-2xl">정보를 불러오지 못했어요</h2>
+          <p className="text-sm text-[#777] min-[1800px]:text-base">잠시 후 다시 시도해 주세요.</p>
+          <button type="button" disabled={list.isFetching || layout?.isUpdating || layout?.isLoggingOut} onClick={retry} className="min-h-11 rounded-lg bg-dark px-7 py-3 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 min-[1800px]:text-base">
+            {list.isFetching ? "다시 불러오는 중..." : "재시도"}
+          </button>
+        </section>
+      ) : <>
       <p
         aria-live="polite"
         className="text-[13px] leading-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75 text-[#777]"
       >
-        {resultCount === 0 ? "검색 결과 없음" : `검색 결과 ${resultCount}명`}
+        {isLoading ? "목록을 불러오는 중..." : resultCount === 0 ? "검색 결과 없음" : `검색 결과 ${resultCount}명`}
       </p>
       <div className="overflow-x-auto rounded-xl border-[1.5px] border-[#d0d0d0]">
         <table
@@ -217,25 +186,27 @@ export default function InvestorListPage({
             </tr>
           </thead>
           <tbody className="text-[#333]">
-            {investors.length === 0 && (
+            {(isLoading || investors.length === 0) && (
               <tr>
                 <td
                   colSpan={7}
                   className="h-[62.5px] border-b-[1.5px] border-[#e4e4e4] px-3.5 py-2.5 min-[1800px]:px-5.25 min-[1800px]:py-3.75 text-center"
                 >
-                  아직 투자자가 나오지 않았어요
+                  {isLoading ? "목록을 불러오는 중..." : "아직 투자자가 나오지 않았어요"}
                 </td>
               </tr>
             )}
             {investors.map((investor) => (
               <tr
-                key={investor.id}
-                onClick={() => navigate(`/admin/investors/${investor.id}`)}
+                key={investor.investorId}
+                onClick={() => navigate(`/admin/investors/${encodeURIComponent(investor.investorId)}`)}
                 className="h-15.75 cursor-pointer [&>td]:border-b-[1.5px] [&>td]:border-[#e4e4e4] [&>td]:px-3.5 [&>td]:py-2.5 min-[1800px]:[&>td]:px-5.25 min-[1800px]:[&>td]:py-3.75"
               >
                 <td>
                   <Link
-                    to={`/admin/investors/${investor.id}`}
+                    to={`/admin/investors/${encodeURIComponent(investor.investorId)}`}
+                    title={investor.alias}
+                    className="block truncate rounded focus-visible:outline-2 focus-visible:outline-primary"
                     onClick={(event) => event.stopPropagation()}
                   >
                     {investor.alias}
@@ -243,7 +214,7 @@ export default function InvestorListPage({
                 </td>
                 <td>{investor.kind === "STAFF" ? "운영팀" : "참가자"}</td>
                 <td>
-                  {investor.teamId ? (
+                  {investor.kind !== "STAFF" && investor.teamId ? (
                     <span className="font-sans">
                       TEAM {String(investor.teamId).padStart(2, "0")}
                     </span>
@@ -251,20 +222,26 @@ export default function InvestorListPage({
                     "—"
                   )}
                 </td>
-                <td>1,000,000원</td>
+                <td>{investor.issuedAmount.toLocaleString("ko-KR")}원</td>
                 <td>{investor.investedAmount.toLocaleString("ko-KR")}원</td>
                 <td>
-                  {(1000000 - investor.investedAmount).toLocaleString("ko-KR")}
+                  {investor.balance.toLocaleString("ko-KR")}
                   원
                 </td>
                 <td>
-                  <SpendingStatusBadge status={previewSpendingStatus} />
+                  <SpendingStatusBadge status={investor.spendingStatus} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      </>}
+      {showRefreshError && !layout?.isUpdating && !layout?.isStatusError && !layout?.isLoggingOut && <AdminRefreshErrorDialog
+        isRetrying={list.isFetching}
+        onRetry={retry}
+        onDismiss={() => setDismissedError({ filterKey, updatedAt: list.dataUpdatedAt })}
+      />}
     </div>
   );
 }

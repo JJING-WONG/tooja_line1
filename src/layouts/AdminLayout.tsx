@@ -14,6 +14,9 @@ export type AdminOverviewContext = {
   investmentStatus?: components["schemas"]["InvestmentStatus"]["status"];
   overview?: components["schemas"]["Overview"];
   isRefreshing: boolean;
+  isUpdating: boolean;
+  isStatusError: boolean;
+  isLoggingOut: boolean;
 };
 
 export default function AdminLayout() {
@@ -70,7 +73,7 @@ export default function AdminLayout() {
               {overview.isFetching ? "다시 불러오는 중..." : "재시도"}
             </button>
           </section>
-        ) : <Outlet context={{ investmentStatus, overview: overview.data, isRefreshing: overview.isFetching } satisfies AdminOverviewContext} />}
+        ) : <Outlet context={{ investmentStatus, overview: overview.data, isRefreshing: overview.isFetching, isUpdating, isStatusError: showStatusError, isLoggingOut: adminLogout.isPending } satisfies AdminOverviewContext} />}
       </main>
       {isUpdating && !showStatusError && <LoadingOverlay variant="desktop" />}
       {showStatusError && (

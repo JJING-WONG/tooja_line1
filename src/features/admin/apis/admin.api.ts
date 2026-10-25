@@ -56,7 +56,7 @@ export const updateInvestmentStatus = async (
 
 /**
  * 관리자 투자자 목록 조회: GET /api/v1/admin/investors
- * 사용 예정: A03 진입·검색·필터 변경·자동 갱신 시 호출. 현재 화면 미연동.
+ * 사용처: A03의 useAdminInvestors에서 진입·검색어 입력 대기·필터 변경·2초 자동 갱신·수동 재시도 시 호출.
  * A02의 미소진 투자자 보기에서 이동하면 spendingStatus: "UNSPENT"로 조회합니다.
  * 요청: 관리자 세션 쿠키로 인증. 본문·CSRF 헤더 없음.
  * 선택 쿼리: q(별칭·내부 ID 부분 검색, 최대 100자), teamId(1~20),
@@ -80,6 +80,7 @@ export const getAdminInvestors = async (
       spendingStatus: params?.spendingStatus,
     },
     signal,
+    timeout: 15_000,
   });
 
   return response.data;
