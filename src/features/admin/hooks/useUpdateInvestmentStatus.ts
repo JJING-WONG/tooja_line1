@@ -24,7 +24,7 @@ export function useUpdateInvestmentStatus() {
       if (!adminId) throw new Error("관리자 로그인 상태를 확인해 주세요.");
       assertAdminSession(client, adminId);
       // 이전 조회가 상태 변경 응답을 덮어쓰지 않게 먼저 취소합니다.
-      await client.cancelQueries({ queryKey: adminOverviewQueryKey(adminId) });
+      await client.cancelQueries({ queryKey: ["admin"] });
       let current = assertAdminSession(client, adminId);
       try {
         try { return await updateInvestmentStatus({ status }, current.csrfToken); }
