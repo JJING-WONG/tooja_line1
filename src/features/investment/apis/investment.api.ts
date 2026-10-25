@@ -9,7 +9,7 @@ type InvestmentHistory = components["schemas"]["InvestmentHistory"];
 
 /**
  * 투자 확정: POST /api/v1/investor/investments
- * 사용 예정: P03-M 확인 모달에서 사용자가 '투자 확정'을 눌렀을 때 호출. 현재 화면 미연동.
+ * 사용처: P03-M의 useCreateInvestment에서 투자 확정 및 동일 키·본문 복구 전송.
  * 요청 본문: InvestmentInput — { teamId: number, amount: number }.
  * teamId는 1~20, amount는 100000~700000원 사이의 100000원 단위 정수입니다.
  * 요청 헤더: X-CSRF-Token — 현재 투자자용 토큰.
@@ -29,6 +29,7 @@ export const createInvestment = async (
     "/investor/investments",
     { teamId: input.teamId, amount: input.amount },
     {
+      timeout: 15_000, // 응답 지연 시 동일 키의 결과 조회로 복구합니다.
       headers: {
         "X-CSRF-Token": csrfToken,
         "Idempotency-Key": requestKey,
@@ -42,7 +43,7 @@ export const createInvestment = async (
 /**
  * 투자 요청 결과 조회: GET /api/v1/investor/investment-requests/{requestKey}
  * 사용 예정: P03-M 투자 응답이 끊기거나 새로고침 후 보관한 요청의 결과를 복구할 때 호출.
- * 일반 화면 조회마다 호출하지 않으며, 현재 화면 미연동입니다.
+ * 사용처: InvestmentFlowProvider/useCreateInvestment의 불확실한 요청 확인·새로고침 복구. 일반 조회마다 호출하지 않습니다.
  * 요청 경로: requestKey — 투자 확정 요청에서 사용한 UUID v4.
  * 요청: 투자자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, RequestResult — { status, requestKey, result?, originalHttpStatus?, error? }.
@@ -57,7 +58,7 @@ export const getInvestmentRequest = async (
 ): Promise<RequestResult> => {
   const response = await apiClient.get<RequestResult>(
     `/investor/investment-requests/${encodeURIComponent(requestKey)}`,
-    { signal },
+    { signal, timeout: 15_000 },
   );
 
   return response.data;
