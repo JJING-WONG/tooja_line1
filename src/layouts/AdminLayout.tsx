@@ -1,3 +1,4 @@
+import { useAdminLogout } from "../features/auth/hooks/useAdminLogout";
 import { Outlet, useLocation } from "react-router-dom";
 
 import AdminSidebar from "../features/admin/components/AdminSidebar";
@@ -37,6 +38,7 @@ export default function AdminLayout({
   onRetry?: () => void;
   onDismissError?: () => void;
 }) {
+  const adminLogout = useAdminLogout();
   const pathname = useLocation().pathname;
   const isOverview = pathname === "/admin";
   const supportsAutoRefresh = isOverview || pathname === "/admin/investors";
@@ -53,6 +55,9 @@ export default function AdminLayout({
         investmentStatus={investmentStatus}
         isUpdating={isUpdating}
         onStatusChange={onStatusChange}
+        onLogout={adminLogout.logout}
+        isLoggingOut={adminLogout.isPending}
+        logoutError={adminLogout.errorMessage}
       />
       <main inert={isOverview && isUpdating} aria-busy={isOverview && isUpdating} className={`min-w-0 flex-1 ${isExpanded ? "px-4 py-6 min-[1200px]:px-8 min-[1800px]:px-12 min-[1800px]:py-10.5" : "px-8 py-7"}`}>
         {isInitialError ? (
