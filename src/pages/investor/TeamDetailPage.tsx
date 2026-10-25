@@ -1,23 +1,55 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { isAxiosError } from "axios";
+import type { components } from "../../apis/schema";
+import LoadingOverlay from "../../components/ui/LoadingOverlay";
+import ErrorDialog from "../../components/ui/ErrorDialog";
+import { useInvestorTeam } from "../../features/investor/hooks/useInvestorTeam";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import arrowBack from "../../assets/ArrowBack.svg";
 import teamLogo from "../../assets/TeamLogo.svg";
 import InvestmentConfirmDialog from "../../features/investment/components/InvestmentConfirmDialog";
 
 const amounts = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000];
 
-export default function TeamDetailPage({
-  previewBalance = 1_000_000,
-}: {
-  previewBalance?: number;
-}) {
-  const { teamId } = useParams();
-  // UI 상태 확인용 값. API 연결 시 잔액·allowedAmounts·investmentState로 교체합니다.
-  const balance = previewBalance;
+export default function TeamDetailPage() {
+  const { teamId: pathTeamId } = useParams();
+  const navigate = useNavigate();
+  const parsedId = pathTeamId && /^\d+$/.test(pathTeamId) ? Number(pathTeamId) : NaN;
+  const teamId = Number.isSafeInteger(parsedId) && parsedId >= 1 && parsedId <= 20 ? parsedId : null;
+  const query = useInvestorTeam(teamId);
+  const status = isAxiosError(query.error) ? query.error.response?.status : undefined;
+  const isMissing = teamId === null || status === 404 || status === 422;
+  if (isMissing || query.isError) {
+    return <main className="min-h-dvh bg-white">
+      <ErrorDialog
+        title={isMissing ? "부스를 찾을 수 없어요" : "팀 정보를 불러오지 못했어요"}
+        message={isMissing ? "부스 목록에서 다시 확인해 주세요." : "잠시 후 다시 시도해 주세요."}
+        confirmLabel={isMissing ? "부스 목록으로" : "재시도"}
+        isBusy={query.isFetching}
+        onBack={isMissing ? undefined : () => navigate("/invest")}
+        onConfirm={() => { if (isMissing) navigate("/invest"); else void query.refetch(); }}
+      />
+    </main>;
+  }
+  if (!query.data) return <main className="min-h-dvh bg-white"><LoadingOverlay mode="initial" /></main>;
+  if (query.data.team.investmentState === "SELF_TEAM" || query.data.team.investmentState === "ALREADY_INVESTED" || query.data.team.myInvestmentAmount > 0) {
+    return <Navigate to="/invest" replace />;
+  }
+  // 재조회가 진행 중이면 확정을 막고, 최신 응답 도착 시 선택·열린 확인창을 초기화합니다.
+  return <TeamDetailContent key={`${teamId}:${query.dataUpdatedAt}`} detail={query.data} isRefreshing={query.isFetching} />;
+}
+
+function TeamDetailContent({ detail, isRefreshing }: { detail: components["schemas"]["TeamDetail"]; isRefreshing: boolean }) {
+  const { team, investor, investmentStatus } = detail;
+  const teamId = String(team.teamId);
+  const balance = investor.balance;
+  const isPaused = investmentStatus.status === "PAUSED";
+  const isAvailable = team.investmentState === "AVAILABLE" && !isPaused && !isRefreshing;
+  const isAmountAllowed = (amount: number) => isAvailable && team.allowedAmounts.includes(amount);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const hasInsufficientBalance = balance < amounts[0];
-  const canInvest = selectedAmount !== null && selectedAmount <= balance;
+  const hasInsufficientBalance = team.investmentState === "BALANCE_EXHAUSTED" || balance < amounts[0];
+  const canInvest = selectedAmount !== null && isAmountAllowed(selectedAmount);
 
   return (
     <main className="min-h-dvh bg-white text-[#222] font-['Noto_Sans_KR', sans-serif]">
@@ -39,10 +71,10 @@ export default function TeamDetailPage({
           <img src={teamLogo} alt="" className="shrink-0" />
           <div className="flex w-54.75 shrink-0 flex-col gap-0.5 px-2.5">
             <h1 className="whitespace-nowrap text-[30px] leading-10.5 text-white font-[Anta, sans-serif]">
-              TEAM {String(teamId ?? "05").padStart(2, "0")}
+              TEAM {String(team.teamId).padStart(2, "0")}
             </h1>
             <p className="h-7.5 text-[12px] leading-[16.8px] text-white">
-              로컬 상점을 연결하는 서비스
+              {team.description}
             </p>
             <p className="text-[10px] leading-3.5 text-[#eee]">
               <span className="font-bold text-[#ffcabe]">[변경]</span>{" "}
@@ -62,10 +94,10 @@ export default function TeamDetailPage({
               <button
                 key={amount}
                 type="button"
-                disabled={amount > balance}
+                disabled={!isAmountAllowed(amount)}
                 aria-pressed={amount === selectedAmount}
                 onClick={() => setSelectedAmount(amount)}
-                className={`${index < 4 ? "h-16.25" : "h-16.5"} cursor-pointer rounded-lg text-[14px] font-bold leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ${amount > balance ? `border border-[#bdbdbd] bg-[#f4f4f4] ${index < 4 ? "text-[#333]/50" : "text-black/30"}` : amount === selectedAmount ? "bg-secondary text-white" : "border border-[#bdbdbd] bg-white text-[#333]"}`}
+                className={`${index < 4 ? "h-16.25" : "h-16.5"} cursor-pointer rounded-lg text-[14px] font-bold leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ${!isAmountAllowed(amount) ? `border border-[#bdbdbd] bg-[#f4f4f4] ${index < 4 ? "text-[#333]/50" : "text-black/30"}` : amount === selectedAmount ? "bg-secondary text-white" : "border border-[#bdbdbd] bg-white text-[#333]"}`}
               >
                 {amount / 10_000}만원
               </button>
@@ -83,7 +115,9 @@ export default function TeamDetailPage({
           <div className={`flex items-center justify-between px-4 py-3.5 ${hasInsufficientBalance ? "h-12.25" : "h-13.25"}`}>
             <dt className="text-[14px] leading-5 text-[#777]">투자 금액</dt>
             <dd className={`text-[#ce6161] ${hasInsufficientBalance ? "text-[15px] font-medium leading-5.25" : "text-[18px] font-bold leading-6.25"}`}>
-              {hasInsufficientBalance
+              {isPaused
+                ? "지금은 투자할 수 없어요"
+                : hasInsufficientBalance
                 ? "투자 잔액이 부족해요"
                 : selectedAmount === null
                   ? "-"

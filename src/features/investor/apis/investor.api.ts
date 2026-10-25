@@ -25,7 +25,7 @@ export const getInvestorTeams = async (
 
 /**
  * 투자자 팀 상세 조회: GET /api/v1/investor/teams/{teamId}
- * 사용 예정: P03 팀 상세 진입 및 투자 거절 후 최신 상태 재조회. 현재 화면 미연동.
+ * 사용처: P03의 useInvestorTeam에서 진입·포커스·재연결·수동 재시도 시 조회. 투자 거절 후 재조회는 투자 확정 연결 때 적용.
  * 요청 경로: teamId — 부스 목록에서 받은 정수 팀 번호(1~20).
  * 요청: 투자자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, TeamDetail — { investor, team, asOf, investmentStatus }.
