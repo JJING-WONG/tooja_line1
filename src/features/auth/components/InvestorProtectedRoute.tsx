@@ -1,3 +1,4 @@
+import InvestmentFlowProvider from "../../investment/components/InvestmentFlowProvider";
 import { Navigate, Outlet } from "react-router-dom";
 import { useInvestorSession } from "../hooks/useInvestorSession";
 
@@ -31,5 +32,5 @@ export default function InvestorProtectedRoute({
     return session.data ? <Navigate to="/invest" replace /> : <Outlet />;
   }
 
-  return session.data ? <Outlet /> : <Navigate to="/login" replace />;
+  return session.data ? <InvestmentFlowProvider key={session.data.investor.investorId} investorId={session.data.investor.investorId}><Outlet /></InvestmentFlowProvider> : <Navigate to="/login" replace />;
 }

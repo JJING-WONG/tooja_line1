@@ -61,7 +61,7 @@ export function useInvestorLogout() {
 
   return {
     logout: () => {
-      if (submitting.current) return;
+      if (submitting.current || queryClient.isMutating({ mutationKey: ["investor", "investment", "create"] }) > 0) return;
       submitting.current = true;
       logout.mutate();
     },

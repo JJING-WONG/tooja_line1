@@ -8,7 +8,7 @@ type AdminSession = components["schemas"]["AdminSession"];
 
 /**
  * 투자자 로그인 준비: GET /api/v1/investor/csrf
- * 사용처: P01 로그인 준비(useInvestorLogin), P02 로그아웃 시 토큰 복구(useInvestorLogout).
+ * 사용처: P01 로그인 준비(useInvestorLogin), P02 로그아웃 시 토큰 복구(useInvestorLogout), P03-M 투자 요청의 CSRF_INVALID 발생 시 한 번 갱신(useCreateInvestment).
  * 요청: 본문·CSRF 헤더 없음.
  * 응답: 200, CsrfResponse (schema: Csrf) — { csrfToken: string }.
  * 유효한 세션이 없으면 서버가 로그인 준비 HttpOnly 쿠키를 발급합니다.

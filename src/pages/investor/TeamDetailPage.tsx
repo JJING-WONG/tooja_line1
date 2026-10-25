@@ -7,7 +7,7 @@ import { useInvestorTeam } from "../../features/investor/hooks/useInvestorTeam";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import arrowBack from "../../assets/ArrowBack.svg";
 import teamLogo from "../../assets/TeamLogo.svg";
-import InvestmentConfirmDialog from "../../features/investment/components/InvestmentConfirmDialog";
+import { useInvestmentConfirmation } from "../../features/investment/hooks/useCreateInvestment";
 
 const amounts = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000];
 
@@ -41,13 +41,12 @@ export default function TeamDetailPage() {
 
 function TeamDetailContent({ detail, isRefreshing }: { detail: components["schemas"]["TeamDetail"]; isRefreshing: boolean }) {
   const { team, investor, investmentStatus } = detail;
-  const teamId = String(team.teamId);
   const balance = investor.balance;
   const isPaused = investmentStatus.status === "PAUSED";
   const isAvailable = team.investmentState === "AVAILABLE" && !isPaused && !isRefreshing;
   const isAmountAllowed = (amount: number) => isAvailable && team.allowedAmounts.includes(amount);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const openConfirmation = useInvestmentConfirmation();
   const hasInsufficientBalance = team.investmentState === "BALANCE_EXHAUSTED" || balance < amounts[0];
   const canInvest = selectedAmount !== null && isAmountAllowed(selectedAmount);
 
@@ -139,21 +138,14 @@ function TeamDetailContent({ detail, isRefreshing }: { detail: components["schem
           type="button"
           disabled={!canInvest}
           onClick={() => {
-            if (canInvest) setIsConfirmOpen(true);
+            if (canInvest && selectedAmount !== null) openConfirmation({ teamId: team.teamId, amount: selectedAmount, balanceAfter: balance - selectedAmount });
           }}
           className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-primary disabled:bg-primary/40"
         >
           {canInvest && selectedAmount !== null ? `${selectedAmount / 10_000}만원 투자하기` : "지금은 투자할 수 없어요"}
         </button>
       </div>
-      {isConfirmOpen && canInvest && selectedAmount !== null && (
-        <InvestmentConfirmDialog
-          teamId={teamId ?? "05"}
-          amount={selectedAmount}
-          balanceAfter={balance - selectedAmount}
-          onClose={() => setIsConfirmOpen(false)}
-        />
-      )}
+
     </main>
   );
 }
