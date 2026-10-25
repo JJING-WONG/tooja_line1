@@ -65,8 +65,8 @@ export const getInvestmentRequest = async (
 
 /**
  * 본인 거래 상세 조회: GET /api/v1/investor/investments/{investmentId}
- * 사용 예정: P04 투자 완료 화면 진입·새로고침 시 거래 요약과 남은 투자금을 조회.
- * P05 내역에서 선택한 거래의 상세 표시에도 사용 가능하며, 현재 화면 미연동입니다.
+ * 사용처: P04의 useMyInvestment에서 진입·새로고침·포커스·재연결·수동 재시도 시 거래 요약과 현재 잔액 조회.
+ * P05에서 거래 선택 이동을 제공할 경우 재사용 가능하며 현재 P05에는 연결하지 않습니다.
  * 요청 경로: investmentId — 투자 성공 영수증 또는 본인 거래 목록에서 받은 거래 ID.
  * 요청: 투자자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, InvestmentDetail — { investment, currentBalance, asOf }.
