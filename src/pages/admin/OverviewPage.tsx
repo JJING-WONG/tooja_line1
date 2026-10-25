@@ -4,50 +4,24 @@ import runningIcon from "../../assets/InvestmentRunning.svg";
 import pausedIcon from "../../assets/InvestmentPaused.svg";
 import type { AdminOverviewContext } from "../../layouts/AdminLayout";
 
-// Figma A02 시안 데이터입니다. 관리자 조회 API 연결 시 서버 응답으로 교체합니다.
-const previewMetrics = [
-  { label: "등록 투자자", value: "132명", width: "min-[1800px]:w-[175.5px]" },
-  { label: "투자 인원", value: "120명", width: "min-[1800px]:w-[216px]" },
-  {
-    label: "총 지급액",
-    value: "132,000,000원",
-    width: "min-[1800px]:w-[520.5px]",
-  },
-  {
-    label: "총 투자액",
-    value: "98,400,000원",
-    width: "min-[1800px]:w-[520.5px]",
-  },
-  { label: "총 잔액", value: "33,600,000원", width: "min-[1800px]:w-[969px]" },
-  {
-    label: "전액 소진 / 미소진",
-    value: "80명 / 52명",
-    width: "min-[1800px]:w-[499.5px]",
-  },
-];
-
-const previewRoles = [
-  [
-    "참가자",
-    "120명",
-    "112명",
-    "120,000,000원",
-    "91,200,000원",
-    "소진 74 / 미소진 46",
-  ],
-  [
-    "운영팀 투자자",
-    "12명",
-    "8명",
-    "12,000,000원",
-    "7,200,000원",
-    "소진 6 / 미소진 6",
-  ],
-];
-
 export default function OverviewPage() {
-  const { investmentStatus = "RUNNING" } =
-    useOutletContext<AdminOverviewContext>() ?? {};
+  const { overview, investmentStatus } = useOutletContext<AdminOverviewContext>();
+  if (!overview) return null;
+  const { total, participants, staff } = overview;
+  const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
+  const people = (value: number) => `${value.toLocaleString("ko-KR")}명`;
+  const metrics = [
+    { label: "등록 투자자", value: people(total.registeredInvestorCount), width: "min-[1800px]:w-[175.5px]" },
+    { label: "투자 인원", value: people(total.investedInvestorCount), width: "min-[1800px]:w-[216px]" },
+    { label: "총 지급액", value: won(total.totalIssuedAmount), width: "min-[1800px]:w-[520.5px]" },
+    { label: "총 투자액", value: won(total.totalInvestedAmount), width: "min-[1800px]:w-[520.5px]" },
+    { label: "총 잔액", value: won(total.totalBalance), width: "min-[1800px]:w-[969px]" },
+    { label: "전액 소진 / 미소진", value: `${people(total.completedCount)} / ${people(total.unspentCount)}`, width: "min-[1800px]:w-[499.5px]" },
+  ];
+  const roles = ([{ label: "참가자", metric: participants }, { label: "운영팀 투자자", metric: staff }]).map(({ label, metric }) => {
+    return [label, people(metric.registeredInvestorCount), people(metric.investedInvestorCount), won(metric.totalIssuedAmount), won(metric.totalInvestedAmount), `소진 ${metric.completedCount.toLocaleString("ko-KR")} / 미소진 ${metric.unspentCount.toLocaleString("ko-KR")}`];
+  });
+  const updatedAt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(overview.asOf));
   const isRunning = investmentStatus === "RUNNING";
   return (
     <div className="flex flex-col gap-7.5">
@@ -56,13 +30,12 @@ export default function OverviewPage() {
           <img src={isRunning ? runningIcon : pausedIcon} alt="" />
           {isRunning ? "투자 진행 중" : "투자 중단됨"}
         </h1>
-        {/* 자동 갱신 및 기준 시각은 조회 API 연결 시 적용합니다. */}
         <p className="text-[13px] leading-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75 text-[#777]">
-          ● 마지막 갱신 14:32:05 · 1초 자동 갱신
+          ● 마지막 갱신 {updatedAt} · 1초 자동 갱신
         </p>
       </header>
       <dl className="grid grid-cols-2 gap-3 min-[1280px]:grid-cols-3 min-[1800px]:flex min-[1800px]:flex-wrap min-[1800px]:gap-4.5">
-        {previewMetrics.map(({ label, value, width }) => (
+        {metrics.map(({ label, value, width }) => (
           <div
             key={label}
             className={`${width} flex min-w-0 max-w-full flex-col gap-1 rounded-[15px] bg-[#f6f6f6] px-4 py-4 min-[1800px]:gap-1.5 min-[1800px]:px-6.75 min-[1800px]:py-6`}
@@ -116,7 +89,7 @@ export default function OverviewPage() {
             </tr>
           </thead>
           <tbody className="text-[#333]">
-            {previewRoles.map(([role, ...values]) => (
+            {roles.map(([role, ...values]) => (
               <tr key={role}>
                 <th
                   scope="row"

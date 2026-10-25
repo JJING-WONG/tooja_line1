@@ -61,7 +61,7 @@ export function useAdminLogout() {
 
   return {
     logout: () => {
-      if (submitting.current) return;
+      if (submitting.current || queryClient.isMutating({ mutationKey: ["admin", "investment-status"] }) > 0) return;
       submitting.current = true;
       logout.mutate();
     },
