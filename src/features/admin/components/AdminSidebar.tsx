@@ -6,16 +6,22 @@ export default function AdminSidebar({
   investmentStatus = "RUNNING",
   isUpdating = false,
   onStatusChange,
+  onLogout,
+  isLoggingOut = false,
+  logoutError,
 }: {
   isExpanded?: boolean;
   investmentStatus?: "RUNNING" | "PAUSED";
   isUpdating?: boolean;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
+  logoutError?: string;
   onStatusChange?: (status: "RUNNING" | "PAUSED") => void;
 }) {
   const isRunning = investmentStatus === "RUNNING";
 
   return (
-      <aside inert={isExpanded && isUpdating} className={`sticky top-0 flex h-dvh shrink-0 flex-col bg-[#f2f2f2] ${isExpanded ? "min-h-140 w-55 gap-1.5 px-4 py-6 min-[1800px]:min-h-210 min-[1800px]:w-82.5 min-[1800px]:gap-2.25 min-[1800px]:px-6 min-[1800px]:py-9" : "min-h-140 w-55 gap-1.5 px-4 py-6"}`}>
+      <aside inert={(isExpanded && isUpdating) || isLoggingOut} className={`sticky top-0 flex h-dvh shrink-0 flex-col bg-[#f2f2f2] ${isExpanded ? "min-h-140 w-55 gap-1.5 px-4 py-6 min-[1800px]:min-h-210 min-[1800px]:w-82.5 min-[1800px]:gap-2.25 min-[1800px]:px-6 min-[1800px]:py-9" : "min-h-140 w-55 gap-1.5 px-4 py-6"}`}>
         <p className={`font-bold text-[#222] ${isExpanded ? "text-[17px] leading-6 min-[1800px]:text-[25.5px] min-[1800px]:leading-9" : "text-[17px] leading-6"}`}>
           1호선톤 관리자
         </p>
@@ -64,11 +70,15 @@ export default function AdminSidebar({
             {isExpanded ? "투자 중단" : "투자 종료"}
           </button>
         </div>
+        {logoutError && <p role="alert" className="text-sm leading-5 text-[#b42318]">{logoutError}</p>}
         <button
           type="button"
-          className={`text-left text-[#888] ${isExpanded ? "rounded-lg px-3.5 py-3 text-[13px] leading-4.5 min-[1800px]:rounded-xl min-[1800px]:px-5.25 min-[1800px]:py-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75" : "rounded-lg px-3.5 py-3 text-[13px] leading-4.5"}`}
+          onClick={onLogout}
+          disabled={isLoggingOut}
+          aria-busy={isLoggingOut}
+          className={`disabled:cursor-wait disabled:opacity-60 text-left text-[#888] ${isExpanded ? "rounded-lg px-3.5 py-3 text-[13px] leading-4.5 min-[1800px]:rounded-xl min-[1800px]:px-5.25 min-[1800px]:py-4.5 min-[1800px]:text-[19.5px] min-[1800px]:leading-6.75" : "rounded-lg px-3.5 py-3 text-[13px] leading-4.5"}`}
         >
-          로그아웃
+          {isLoggingOut ? "로그아웃 중…" : "로그아웃"}
         </button>
       </aside>
   );

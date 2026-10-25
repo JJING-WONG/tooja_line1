@@ -74,7 +74,7 @@ export const logoutInvestor = async (csrfToken: string): Promise<void> => {
 
 /**
  * 관리자 로그인 준비: GET /api/v1/admin/csrf
- * 사용 예정: A01 로그인 준비, 관리자 공통 로그아웃 시 토큰 복구. 현재 화면 미연동.
+ * 사용처: A01 useAdminLogin의 로그인 준비·제출, A02~A04 useAdminLogout의 CSRF 복구.
  * 요청: 본문·쿼리·CSRF 헤더 없음. 로그인 여부와 관계없이 호출할 수 있습니다.
  * 응답: 200, CsrfResponse (schema: Csrf) — { csrfToken: string }.
  * 유효한 관리자 세션이 없으면 서버가 로그인 준비 HttpOnly 쿠키를 발급합니다.
@@ -89,7 +89,7 @@ export const getAdminCsrf = async (): Promise<CsrfResponse> => {
 
 /**
  * 관리자 로그인: POST /api/v1/admin/session
- * 사용 예정: A01 관리자 로그인 페이지에서 코드 제출 시 호출. 현재 화면 미연동.
+ * 사용처: A01 useAdminLogin에서 숫자 4자리 코드 제출 시 호출.
  * 요청 본문: LoginInput — { code: string } (ASCII 숫자 4자리, 앞자리 0 유지).
  * 요청 헤더: X-CSRF-Token — 관리자 로그인 준비 API에서 받은 토큰.
  * 응답: 200, AdminSession — { admin, csrfToken, expiresAt }.
@@ -111,7 +111,7 @@ export const loginAdmin = async (
 
 /**
  * 관리자 세션 조회·복구: GET /api/v1/admin/session
- * 사용 예정: A01 기존 로그인 확인, A02~A04 공통 인증·접근 제어. 현재 화면 미연동.
+ * 사용처: useAdminSession 및 AdminProtectedRoute에서 A01 기존 로그인 확인·A02~A04 접근 제어.
  * 호출 시점: 관리자 화면 진입·새로고침 시 세션과 CSRF 토큰을 복구합니다.
  * 요청: 관리자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, AdminSession — { admin, csrfToken, expiresAt }.
@@ -131,7 +131,7 @@ export const getAdminSession = async (
 
 /**
  * 관리자 로그아웃: DELETE /api/v1/admin/session
- * 사용 예정: A02~A04의 공통 AdminLayout 사이드바 로그아웃 버튼. 현재 화면 미연동.
+ * 사용처: A02~A04 공통 AdminLayout의 useAdminLogout에서 사이드바 로그아웃 시 호출.
  * 요청 본문: 없음.
  * 요청 헤더: X-CSRF-Token — 현재 관리자 세션 또는 관리자 로그인 준비 API의 토큰.
  * 응답: 204 No Content — 본문 없음, 함수 반환 타입 Promise<void>.

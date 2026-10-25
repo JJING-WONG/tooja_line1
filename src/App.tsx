@@ -10,6 +10,7 @@ import HomePage from "./pages/investor/HomePage";
 import TeamDetailPage from "./pages/investor/TeamDetailPage";
 import InvestmentSuccessPage from "./pages/investor/InvestmentSuccessPage";
 import InvestmentHistoryPage from "./pages/investor/InvestmentHistoryPage";
+import AdminProtectedRoute from "./features/auth/components/AdminProtectedRoute";
 import InvestorProtectedRoute from "./features/auth/components/InvestorProtectedRoute";
 
 function App() {
@@ -30,11 +31,16 @@ function App() {
       </Route>
 
       {/* 관리자 */}
-      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route element={<AdminProtectedRoute guestOnly />}>
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+      </Route>
+      <Route element={<AdminProtectedRoute />}>
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<OverviewPage />} />
         <Route path="investors" element={<InvestorListPage />} />
         <Route path="investors/:investorId" element={<InvestorDetailPage />} />
+      </Route>
+
       </Route>
 
       {/* 공개 대시보드 */}
