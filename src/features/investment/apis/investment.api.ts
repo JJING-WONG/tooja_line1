@@ -90,7 +90,7 @@ export const getMyInvestment = async (
 
 /**
  * 본인 투자 내역 조회: GET /api/v1/investor/investments
- * 사용 예정: P05 내 투자 내역 화면 진입 및 투자 후 내역 갱신 시 호출. 현재 화면 미연동.
+ * 사용처: P05의 useMyInvestments에서 진입·포커스·재연결·수동 재시도 시 조회. 투자 성공 후 캐시 무효화로 재진입 시 최신 내역 조회.
  * 요청: 투자자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, InvestmentHistory — { investor, items, count, asOf }.
  * investor에는 현재 잔액·총 투자액·소진 상태가 포함되어 별도 잔액 조회가 필요 없습니다.

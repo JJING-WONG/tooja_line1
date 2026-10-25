@@ -1,32 +1,28 @@
+import { useMyInvestments } from "../../features/investment/hooks/useMyInvestments";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import ErrorDialog from "../../components/ui/ErrorDialog";
 import { Link, useNavigate } from "react-router-dom";
 
-// P05 디자인 확인용 데이터. 내 투자 내역 API 연결 시 서버 응답으로 교체합니다.
-const previewInvestments = [
-  { teamId: 5, amount: 500_000, confirmedAt: "10.17 14:32" },
-  { teamId: 2, amount: 200_000, confirmedAt: "10.17 13:10" },
-  { teamId: 7, amount: 750_000, confirmedAt: "10.17 15:20" },
-];
+const confirmedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+});
 
-export default function InvestmentHistoryPage({
-  previewEmpty = false,
-  isInitialLoading = false,
-  isError = false,
-  isRetrying = false,
-  onRetry,
-}: {
-  previewEmpty?: boolean;
-  isInitialLoading?: boolean;
-  isError?: boolean;
-  isRetrying?: boolean;
-  onRetry?: () => void;
-}) {
+function formatConfirmedAt(value: string) {
+  const parts = confirmedAtFormatter.formatToParts(new Date(value));
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
+  return `${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+export default function InvestmentHistoryPage() {
   const navigate = useNavigate();
-  const investments = previewEmpty ? [] : previewInvestments;
+  const query = useMyInvestments();
+  const history = query.data;
+  const isError = query.isError;
+  const isRetrying = query.isFetching;
+  const investments = history?.items ?? [];
 
-  // API 연결 전 UI 상태입니다. 최초 조회 중에는 시안 금액·내역을 표시하지 않습니다.
-  if (isInitialLoading) {
+  if (!history && !isError) {
     return <main className="min-h-dvh bg-[#f6f6f6]"><LoadingOverlay mode="initial" /></main>;
   }
 
@@ -45,12 +41,12 @@ export default function InvestmentHistoryPage({
             message="잠시 후 다시 시도해 주세요."
             confirmLabel="재시도"
             isBusy={isRetrying}
-            onConfirm={() => onRetry?.()}
+            onConfirm={() => { if (!isRetrying) void query.refetch(); }}
             onBack={() => navigate("/invest")}
           />
-        ) : <>
+        ) : history && <>
         <p className="h-4.25 shrink-0 text-[12px] leading-4.25 text-[#888]">
-          최신순 · {investments.length}건
+          최신순 · {history.count}건
         </p>
 
         {investments.length > 0 && (
@@ -58,16 +54,16 @@ export default function InvestmentHistoryPage({
             {investments.map((investment) => {
               const teamNumber = String(investment.teamId).padStart(2, "0");
               return (
-                <li key={investment.teamId} className="flex w-73.5 max-w-full flex-col gap-0.5 border-b border-[#eee] py-3.5">
+                <li key={investment.investmentId} className="flex w-73.5 max-w-full flex-col gap-0.5 border-b border-[#eee] py-3.5">
                   <div className="flex h-5.25 items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[14px] font-medium leading-5">
-                      <span className="font-[Anta,sans-serif]">TEAM {teamNumber}</span> · 팀 {teamNumber} 데모 서비스
+                      <span className="font-[Anta,sans-serif]">TEAM {teamNumber}</span> · {investment.serviceName}
                     </p>
                     <p className="shrink-0 text-[15px] font-bold leading-5.25 text-[#111]">
                       {investment.amount.toLocaleString("ko-KR")}원
                     </p>
                   </div>
-                  <p className="h-4.25 text-[12px] leading-4.25 text-[#888]">{investment.confirmedAt}</p>
+                  <p className="h-4.25 text-[12px] leading-4.25 text-[#888]">{formatConfirmedAt(investment.confirmedAt)}</p>
                 </li>
               );
             })}
@@ -77,16 +73,16 @@ export default function InvestmentHistoryPage({
         <dl className="flex shrink-0 flex-col gap-2.5 rounded-[14px] bg-white p-4">
           <div className="flex h-5.25 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">지급액</dt>
-            <dd className="text-[15px] font-bold leading-5.25">1,000,000원</dd>
+            <dd className="text-[15px] font-bold leading-5.25">{history.investor.issuedAmount.toLocaleString("ko-KR")}원</dd>
           </div>
           <div className="flex h-5.25 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">총 투자액</dt>
-            <dd className="text-[15px] font-bold leading-5.25">{previewEmpty ? "0" : "700,000"}원</dd>
+            <dd className="text-[15px] font-bold leading-5.25">{history.investor.investedAmount.toLocaleString("ko-KR")}원</dd>
           </div>
           <div aria-hidden="true" className="h-px rounded-lg bg-[#e2e2e2]" />
           <div className="flex h-8.75 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">남은 잔액</dt>
-            <dd className="text-[25px] font-bold leading-8.75 text-[#2d42fc]">{previewEmpty ? "1,000,000" : "300,000"}원</dd>
+            <dd className="text-[25px] font-bold leading-8.75 text-[#2d42fc]">{history.investor.balance.toLocaleString("ko-KR")}원</dd>
           </div>
         </dl>
 
