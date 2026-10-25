@@ -1,33 +1,37 @@
-import { Link } from "react-router-dom";
+import { isAxiosError } from "axios";
+import LoadingOverlay from "../../components/ui/LoadingOverlay";
+import { useMyInvestment } from "../../features/investment/hooks/useMyInvestment";
+import { Link, useParams } from "react-router-dom";
 import successIcon from "../../assets/InvestmentSuccess.svg";
 import accessUnavailableIcon from "../../assets/AccessUnavailable.svg";
 
-// P04 디자인 확인용 시안 데이터. 거래 결과 조회 API 연결 시 교체합니다.
-const preview = {
-  teamId: 5,
-  serviceName: "팀 05 데모 서비스",
-  amount: 500_000,
-  confirmedAt: "10.17 14:32",
-  balance: 500_000,
-};
+const confirmedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+});
 
-export default function InvestmentSuccessPage({
-  previewStatus = "success",
-  previewBalance = preview.balance,
-  isRetrying = false,
-  onRetry,
-}: {
-  previewStatus?: "success" | "unavailable" | "error";
-  previewBalance?: number;
-  isRetrying?: boolean;
-  onRetry?: () => void;
-}) {
-  const teamLabel = `TEAM ${String(preview.teamId).padStart(2, "0")}`;
-  // 상태별 UI 확인용 값입니다. 거래 ID별 API 조회는 아직 연결하지 않습니다.
-  const isUnavailable = previewStatus === "unavailable";
-  const isError = previewStatus === "error";
-  const hasResult = !isUnavailable && !isError;
-  const isCompleted = hasResult && previewBalance === 0;
+function formatConfirmedAt(value: string) {
+  const parts = confirmedAtFormatter.formatToParts(new Date(value));
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
+  return `${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+export default function InvestmentSuccessPage() {
+  const { investmentId } = useParams();
+  const query = useMyInvestment(investmentId);
+  const status = isAxiosError(query.error) ? query.error.response?.status : undefined;
+  const isUnavailable = !investmentId || status === 404;
+  const isError = !isUnavailable && query.isError;
+  const investment = query.data?.investment;
+  const balance = query.data?.currentBalance;
+  const hasResult = !isUnavailable && !isError && investment !== undefined;
+  const isCompleted = hasResult && balance === 0;
+  const isRetrying = query.isFetching;
+  const teamLabel = investment ? `TEAM ${String(investment.teamId).padStart(2, "0")}` : "";
+
+  if (!isUnavailable && !isError && !query.data) {
+    return <main className="min-h-dvh bg-white"><LoadingOverlay mode="initial" /></main>;
+  }
 
   return (
     <main className="min-h-dvh bg-white text-[#222] font-['Noto_Sans_KR',sans-serif]">
@@ -41,7 +45,7 @@ export default function InvestmentSuccessPage({
           </h1>
           <p className="h-5 w-full text-[14px] leading-5 text-[#777]">
             <span className="font-[Anta,sans-serif]">{teamLabel}</span>에{" "}
-            {preview.amount.toLocaleString("ko-KR")}원을 투자했어요
+            {investment?.amount.toLocaleString("ko-KR")}원을 투자했어요
           </p>
         </header>}
 
@@ -66,19 +70,19 @@ export default function InvestmentSuccessPage({
             </dt>
             <dd className="min-w-0 text-right text-[13px] font-bold leading-4.5">
               <span className="font-[Anta,sans-serif]">{teamLabel}</span> ·{" "}
-              {preview.serviceName}
+              {investment?.serviceName}
             </dd>
           </div>
           <div className="flex h-5.25 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">투자 금액</dt>
             <dd className="text-[15px] font-bold leading-5.25">
-              {preview.amount.toLocaleString("ko-KR")}원
+              {investment?.amount.toLocaleString("ko-KR")}원
             </dd>
           </div>
           <div className="flex h-5.25 items-center justify-between">
             <dt className="text-[14px] leading-5 text-[#777]">확정 시각</dt>
             <dd className="text-[15px] font-bold leading-5.25">
-              {preview.confirmedAt}
+              {investment && formatConfirmedAt(investment.confirmedAt)}
             </dd>
           </div>
         </dl>
@@ -86,7 +90,7 @@ export default function InvestmentSuccessPage({
         <div className="flex h-16.25 shrink-0 items-center justify-between rounded-xl border border-[#bdbdbd] bg-white p-4">
           <span className="text-[14px] leading-5 text-[#777]">남은 투자금</span>
           <span className="text-[22px] font-bold leading-7.75">
-            {previewBalance.toLocaleString("ko-KR")}원
+            {balance?.toLocaleString("ko-KR")}원
           </span>
         </div>
         </>}
@@ -98,7 +102,7 @@ export default function InvestmentSuccessPage({
             disabled={isRetrying}
             aria-busy={isRetrying}
             onClick={() => {
-              if (!isRetrying) onRetry?.();
+              if (!isRetrying) void query.refetch();
             }}
             className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
           >
