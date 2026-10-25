@@ -88,7 +88,7 @@ export const getAdminInvestors = async (
 
 /**
  * 관리자 투자자 상세 조회: GET /api/v1/admin/investors/{investorId}
- * 사용 예정: A04 투자자 상세 진입·새로고침 시 정보·금액 카드·거래 표를 조회. 현재 화면 미연동.
+ * 사용처: A04의 useAdminInvestor에서 진입·새로고침·포커스·재연결·수동 재시도 시 정보·금액 카드·거래 표 조회.
  * 요청 경로: investorId — A03 목록에서 받은 내부 투자자 ID. 로그인 코드가 아닙니다.
  * 요청: 관리자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, InvestorDetail — { investor, investments, asOf }.
@@ -105,7 +105,7 @@ export const getAdminInvestor = async (
 ): Promise<InvestorDetail> => {
   const response = await apiClient.get<InvestorDetail>(
     `/admin/investors/${encodeURIComponent(investorId)}`,
-    { signal },
+    { signal, timeout: 15_000 },
   );
 
   return response.data;
