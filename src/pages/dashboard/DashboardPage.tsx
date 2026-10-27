@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import DesktopErrorDialog from "../../components/ui/DesktopErrorDialog";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import dashboardLogo from "../../assets/DashboardLogo.png";
+import dashboardPaused from "../../assets/DashboardPaused.svg";
+import type { components } from "../../apis/schema";
 
 // D01 시안 데이터입니다. 순위·금액·연결 상태와 갱신 강조는 API 미연동입니다.
 const previewRanking = [
@@ -37,6 +39,7 @@ export default function DashboardPage({
   onRetry,
   connectionStatus = "connected",
   lastUpdatedAt = "14:32:05",
+  investmentStatus = "RUNNING",
 }: {
   previewMode?: "normal" | "tied" | "zero";
   isInitialLoading?: boolean;
@@ -45,7 +48,9 @@ export default function DashboardPage({
   onRetry?: () => void;
   connectionStatus?: "connected" | "reconnecting";
   lastUpdatedAt?: string;
+  investmentStatus?: components["schemas"]["InvestmentStatus"]["status"];
 }) {
+  const isPaused = investmentStatus === "PAUSED";
   // 상태별 디자인 확인용 데이터입니다. 실제 조회 연결 시 응답의 rank를 사용합니다.
   const ranking = previewRanking.map((item, index) =>
     previewMode === "zero"
@@ -154,9 +159,9 @@ export default function DashboardPage({
               role="status"
               aria-live="polite"
               aria-atomic="true"
-              className={`shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 ${connectionStatus === "connected" ? "w-36.75 text-[#a7f3d0]" : "w-65 text-[#fca5a5]"}`}
+              className={`shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 ${connectionStatus === "reconnecting" ? "w-65 text-[#fca5a5]" : isPaused ? "bg-[#2a2f36]/50 text-[#ffcb91]" : "w-36.75 text-[#a7f3d0]"}`}
             >
-              <p>{connectionStatus === "connected" ? `● 연결됨 · ${lastUpdatedAt}` : "● 연결이 끊겼어요 · 재연결 중"}</p>
+              <p>{connectionStatus === "reconnecting" ? "● 연결이 끊겼어요 · 재연결 중" : isPaused ? `● 투자 일시중지됨 · ${lastUpdatedAt}` : `● 연결됨 · ${lastUpdatedAt}`}</p>
               {connectionStatus === "reconnecting" && <p className="text-xs leading-4.25 text-[#9ca3af]">마지막 갱신 {lastUpdatedAt}</p>}
             </div>
             <button
@@ -273,6 +278,15 @@ export default function DashboardPage({
               })}
             </div>
           </section>
+          {isPaused && (
+            <div
+              role="status"
+              aria-label="투자가 일시중지되었어요"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/30"
+            >
+              <img src={dashboardPaused} width={170} height={170} alt="" />
+            </div>
+          )}
           <p role="alert" className="sr-only">
             {fullscreenError}
           </p>
