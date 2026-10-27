@@ -26,7 +26,8 @@ export default function AdminLayout() {
   const [dismissedRefreshAt, setDismissedRefreshAt] = useState<number | null>(null);
   const pathname = useLocation().pathname;
   const isOverview = pathname === "/admin";
-  const isExpanded = isOverview || pathname === "/admin/investors" || pathname.startsWith("/admin/investors/");
+  const isPerformance = pathname === "/admin/performance";
+  const isExpanded = isOverview || isPerformance || pathname === "/admin/investors" || pathname.startsWith("/admin/investors/");
   const investmentStatus = overview.data?.investmentStatus.status;
   const isUpdating = statusUpdate.isPending;
   const failedStatusChange = statusUpdate.failedStatusChange;
