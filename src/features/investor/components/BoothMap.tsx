@@ -76,9 +76,9 @@ export default function BoothMap({
                   top: `${(184 / 401) * 100}%`,
                 }}
               >
-                지금은 점검 중이라
+                지금은 투자가
                 <br />
-                투자할 수 없어요
+                일시정지되어 있어요
               </p>
             </div>
           )}
