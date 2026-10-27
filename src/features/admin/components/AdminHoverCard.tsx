@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export default function AdminHoverCard({ id, labelledBy, className, anchor, children, onClose, onEnter, onLeave }: {
@@ -56,8 +56,18 @@ export default function AdminHoverCard({ id, labelledBy, className, anchor, chil
     };
   }, [anchor, children, onClose]);
 
+  useEffect(() => {
+    const element = card.current;
+    if (!element || !window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
+    const animation = element.animate(
+      [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "translateY(0)" }],
+      { duration: 120, easing: "ease-out" },
+    );
+    return () => animation.cancel();
+  }, []);
+
   return createPortal(
-    <div ref={card} id={id} className={`pf-hover-card ${className}`} role="dialog" aria-modal="false" aria-labelledby={labelledBy} tabIndex={0}
+    <div ref={card} id={id} className={`fixed z-50 invisible max-w-[calc(100vw-24px)] max-h-[calc(100dvh-24px)] overflow-auto overscroll-contain rounded-2xl border border-[#dddded] bg-white text-[13px] leading-normal text-[#333] font-[Anta,Noto_Sans_KR,sans-serif] shadow-[0_16px_48px_#20233824,0_3px_10px_#2023380d] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-3 [&_footer]:border-t [&_footer]:border-[#efeff4] [&_footer]:bg-[#fafafb] [&_footer]:px-5.5 [&_footer]:py-3.25 [&_footer]:text-[11px] [&_footer]:leading-[1.7] [&_footer]:text-[#777] ${className}`} role="dialog" aria-modal="false" aria-labelledby={labelledBy} tabIndex={0}
       onPointerEnter={onEnter} onPointerLeave={onLeave} onFocus={onEnter}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) onLeave(); }}>
       {children}
