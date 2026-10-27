@@ -7,6 +7,7 @@ export default function ErrorDialog({
   confirmLabel = "확인",
   onBack,
   isBusy = false,
+  confirmDisabled = false,
 }: {
   onConfirm: () => void;
   title?: string;
@@ -14,6 +15,7 @@ export default function ErrorDialog({
   confirmLabel?: string;
   onBack?: () => void;
   isBusy?: boolean;
+  confirmDisabled?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -35,7 +37,7 @@ export default function ErrorDialog({
       aria-busy={isBusy}
       onCancel={(event) => {
         event.preventDefault();
-        if (!isBusy) (onBack ?? onConfirm)();
+        if (!isBusy && (onBack || !confirmDisabled)) (onBack ?? onConfirm)();
       }}
       className="fixed inset-0 m-auto w-69.75 max-w-[calc(100%-32px)] rounded-[16.607px] border-0 bg-white px-[16.607px] pb-[19.929px] pt-[26.571px] text-[#111] shadow-[0_3px_30px_2px_rgba(0,0,0,0.15)] backdrop:bg-transparent font-['Noto_Sans_KR', sans-serif]"
     >
@@ -55,8 +57,8 @@ export default function ErrorDialog({
       >돌아가기</button>}
       <button
         type="button"
-        disabled={isBusy}
-        onClick={() => { if (!isBusy) onConfirm(); }}
+        disabled={isBusy || confirmDisabled}
+        onClick={() => { if (!isBusy && !confirmDisabled) onConfirm(); }}
         className="block h-[41.518px] min-w-0 flex-[373] cursor-pointer rounded-[6.643px] bg-dark text-[12.455px] font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
       >
         {isBusy ? "불러오는 중…" : confirmLabel}

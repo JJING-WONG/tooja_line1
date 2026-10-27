@@ -9,8 +9,14 @@ export default function InvestmentFlowProvider({ investorId, children }: { inves
   const { view } = flow;
   const isBusy = flow.isPending || view.status === "submitting" || view.status === "checking";
   return <InvestmentFlowContext value={flow.open}>
-    <div inert={isBusy || view.status === "unknown" || view.status === "error" || view.selection !== null}>{children}</div>
-    {view.status === "unknown" ? <ErrorDialog
+    <div inert={isBusy || view.status === "unknown" || view.status === "error" || view.status === "paused" || view.selection !== null}>{children}</div>
+    {view.status === "paused" ? <ErrorDialog
+      title="지금은 투자가 일시정지되어 있어요"
+      message={flow.canRetryPaused ? "투자가 재개되었어요. 보관한 요청으로 다시 시도해 주세요." : "요청을 보관했어요. 재개가 확인되면 다시 시도할 수 있어요."}
+      confirmLabel={flow.canRetryPaused ? "투자 재시도" : "재개 대기 중"}
+      confirmDisabled={!flow.canRetryPaused}
+      onConfirm={flow.resume}
+    /> : view.status === "unknown" ? <ErrorDialog
       title="투자 결과를 확인하지 못했어요"
       message={view.message}
       confirmLabel="결과 다시 확인"
