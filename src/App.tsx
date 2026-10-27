@@ -4,6 +4,7 @@ import AdminLoginPage from "./pages/admin/LoginPage";
 import OverviewPage from "./pages/admin/OverviewPage";
 import InvestorListPage from "./pages/admin/InvestorListPage";
 import InvestorDetailPage from "./pages/admin/InvestorDetailPage";
+import InvestorPerformancePage from "./pages/admin/InvestorPerformancePage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/investor/HomePage";
@@ -39,6 +40,7 @@ function App() {
         <Route index element={<OverviewPage />} />
         <Route path="investors" element={<InvestorListPage />} />
         <Route path="investors/:investorId" element={<InvestorDetailPage />} />
+        <Route path="performance" element={<InvestorPerformancePage />} />
       </Route>
 
       </Route>
