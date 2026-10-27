@@ -8,6 +8,20 @@ type InvestorList = components["schemas"]["InvestorList"];
 type InvestorListParams = operations["listInvestors"]["parameters"]["query"];
 type InvestorDetail = components["schemas"]["InvestorDetail"];
 
+export type InvestorRankingGroup = components["schemas"]["InvestorRankings"]["group"];
+
+/** 현재 팀 순위로 개인 성과를 조회합니다. 전체 선택은 group을 생략합니다. */
+export const getAdminInvestorRankings = async (
+  group: InvestorRankingGroup = "ALL",
+  signal?: AbortSignal,
+): Promise<components["schemas"]["InvestorRankings"]> => {
+  const { data } = await apiClient.get<components["schemas"]["InvestorRankings"]>(
+    "/admin/investor-rankings",
+    { params: group === "ALL" ? undefined : { group }, signal, timeout: 15_000 },
+  );
+  return data;
+};
+
 /**
  * 관리자 운영 현황 조회: GET /api/v1/admin/overview
  * 사용처: AdminLayout의 useAdminOverview에서 A02 현황 카드·역할별 표와 A02~A04 공통 사이드바의 투자 접수 상태 조회.

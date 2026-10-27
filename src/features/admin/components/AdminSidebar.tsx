@@ -46,6 +46,14 @@ export default function AdminSidebar({
         >
           투자자 목록
         </NavLink>
+        <NavLink
+          to="/admin/performance"
+          className={({ isActive }) =>
+            `rounded-lg px-3.5 py-2.5 text-sm leading-5 ${isExpanded ? "min-[1800px]:rounded-xl min-[1800px]:px-5.25 min-[1800px]:py-3.75 min-[1800px]:text-[21px] min-[1800px]:leading-7.25" : ""} ${isActive ? "bg-primary font-bold text-white" : "text-[#555]"}`
+          }
+        >
+          투자 성과
+        </NavLink>
         <Link
           to="/dashboard"
           target="_blank"
