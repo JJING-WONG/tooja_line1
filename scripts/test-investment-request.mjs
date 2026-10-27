@@ -46,10 +46,19 @@ try {
   scenario([{ method: "get", data: { status: "REJECTED", error: { code: "INSUFFICIENT_BALANCE" } } }]);
   await assert.rejects(run(true), e => e instanceof InvestmentFailure && e.outcome === "rejected" && e.message.includes("잔액"));
 
-  for (const code of ["ALREADY_INVESTED", "INSUFFICIENT_BALANCE", "INVESTMENT_PAUSED", "SELF_INVESTMENT_FORBIDDEN"]) {
+  for (const code of ["ALREADY_INVESTED", "INSUFFICIENT_BALANCE", "SELF_INVESTMENT_FORBIDDEN"]) {
     scenario([{ method: "post", error: httpError(code === "SELF_INVESTMENT_FORBIDDEN" ? 403 : 409, code) }]);
     await assert.rejects(run(), e => e.outcome === "rejected"); assert.equal(calls.length, 1);
   }
+  scenario([{ method: "post", error: httpError(409, "INVESTMENT_PAUSED") }]);
+  await assert.rejects(run(), e => e.outcome === "paused"); assert.equal(calls.length, 1);
+  scenario([{ method: "get", error: httpError(404, "REQUEST_RESULT_NOT_FOUND") }]);
+  await assert.rejects(resolveInvestment(request, true, token, () => checking++, () => false), e => e.outcome === "paused"); assert.equal(calls.length, 1);
+  scenario([{ method: "get", data: { status: "SUCCEEDED", result: receipt } }]);
+  assert.deepEqual(await resolveInvestment(request, true, token, () => {}, () => false), receipt); assert.equal(calls.length, 1);
+  scenario([{ method: "get", error: httpError(404, "REQUEST_RESULT_NOT_FOUND") }, { method: "post", data: receipt }]);
+  assert.deepEqual(await run(true, { ...request, waitingForResume: true }), receipt);
+  assert.equal(calls[1].headers["Idempotency-Key"], request.requestKey); assert.deepEqual(JSON.parse(calls[1].data), request.input);
   scenario([{ method: "post", error: httpError(403, "CSRF_INVALID") }, { method: "post", data: receipt }]);
   assert.deepEqual(await run(), receipt); assert.deepEqual(tokens, [false, true]);
   assert.equal(calls[1].headers["X-CSRF-Token"], "new-token");
@@ -72,6 +81,8 @@ try {
 
   const memory = new Map();
   globalThis.sessionStorage = { getItem: key => memory.get(key) ?? null, setItem: (key, value) => memory.set(key, value), removeItem: key => memory.delete(key) };
+  savePendingInvestment({ ...request, waitingForResume: true });
+  assert.equal(readPendingInvestment(request.investorId).waitingForResume, true);
   savePendingInvestment(request);
   assert.deepEqual(readPendingInvestment(request.investorId), request);
   assert.equal(readPendingInvestment("another-investor"), null);

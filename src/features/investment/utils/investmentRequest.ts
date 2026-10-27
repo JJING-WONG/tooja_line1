@@ -8,10 +8,11 @@ export type PendingInvestment = {
   requestKey: string;
   input: components["schemas"]["InvestmentInput"];
   retryAt?: number;
+  waitingForResume?: boolean;
 };
 
 export class InvestmentFailure extends Error {
-  outcome: "rejected" | "unknown" | "auth";
+  outcome: "rejected" | "unknown" | "auth" | "paused";
   retryAt?: number;
   constructor(message: string, outcome: InvestmentFailure["outcome"], retryAt?: number) {
     super(message);
@@ -43,6 +44,9 @@ function classify(error: unknown): InvestmentFailure {
   if (status === 401 || (status === 403 && code === "FORBIDDEN")) {
     return new InvestmentFailure("로그인 상태를 다시 확인해 주세요.", "auth");
   }
+  if (status === 409 && code === "INVESTMENT_PAUSED") {
+    return new InvestmentFailure(messages.INVESTMENT_PAUSED, "paused");
+  }
   if (status === 429 || status === 503) {
     const seconds = Number(isAxiosError(error) ? error.response?.headers?.["retry-after"] : 0);
     return new InvestmentFailure("잠시 후 처리 결과를 다시 확인해 주세요.", "unknown", Date.now() + (Number.isFinite(seconds) && seconds > 0 ? seconds : 5) * 1000);
@@ -60,14 +64,18 @@ export async function resolveInvestment(
   recover: boolean,
   getToken: (refresh: boolean) => Promise<string>,
   onChecking: () => void,
+  canSend: () => boolean = () => true,
 ) {
   async function send() {
+    if (!canSend()) throw new InvestmentFailure(messages.INVESTMENT_PAUSED, "paused");
     let token = await getToken(false);
+    if (!canSend()) throw new InvestmentFailure(messages.INVESTMENT_PAUSED, "paused");
     try {
       return await createInvestment(request.input, token, request.requestKey);
     } catch (error) {
       if (investmentErrorCode(error) !== "CSRF_INVALID") throw error;
       token = await getToken(true);
+      if (!canSend()) throw new InvestmentFailure(messages.INVESTMENT_PAUSED, "paused");
       return createInvestment(request.input, token, request.requestKey);
     }
   }
@@ -111,6 +119,7 @@ export function readPendingInvestment(investorId: string): PendingInvestment | n
   if (value.investorId !== investorId || typeof value.requestKey !== "string" ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.requestKey) ||
     (value.retryAt !== undefined && (typeof value.retryAt !== "number" || !Number.isFinite(value.retryAt) || value.retryAt < 0)) ||
+    (value.waitingForResume !== undefined && typeof value.waitingForResume !== "boolean") ||
     !value.input || !Number.isInteger(value.input.teamId) || value.input.teamId < 1 || value.input.teamId > 20 ||
     !Number.isInteger(value.input.amount) || value.input.amount < 100000 || value.input.amount > 700000 || value.input.amount % 100000 !== 0) {
     throw new Error("저장된 투자 요청을 확인할 수 없어요.");
