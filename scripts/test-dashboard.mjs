@@ -28,6 +28,7 @@ try {
   assert.ok(!html.includes('데모 서비스'));
   const rankCells=[...html.matchAll(/role="cell" class="text-\[15px\][\s\S]*?<\/span><\/span>/g)].map(m=>m[0]);
   assert.ok(rankCells.length>=2);
+  const pausedClient=client(initial);pausedClient.setQueryData(["public","investment-status"],{status:"PAUSED",revision:2,updatedAt:null});assert.ok(render(pausedClient).includes("투자가 일시중지되었어요"));pausedClient.setQueryData(["public","investment-status"],{status:"RUNNING",revision:3,updatedAt:null});assert.ok(!render(pausedClient).includes("투자가 일시중지되었어요"));
   const changedHtml=render(client(next));assert.ok(changedHtml.includes('+500,000원 갱신'));assert.ok(changedHtml.includes('▲ 2'));assert.ok(changedHtml.includes('▼ 1'));
   const zero=dashboardSnapshot({...data,teams:data.teams.map(t=>({...t,rank:1,raisedAmount:0})),totalInvestedAmount:0,investedInvestorCount:0});assert.ok(render(client(zero)).includes('width:0'));
   assert.ok(render(client()).includes('LoadingArc.png'));

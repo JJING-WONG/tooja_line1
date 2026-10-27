@@ -29,7 +29,7 @@ export const getDashboard = async (
 
 /**
  * 공개 투자 접수 상태 조회: GET /api/v1/public/investment-status
- * 사용 예정: D01에서 투자 진행·중지 안내를 표시할 경우 조회. 안내 UI는 구현되었으며 실제 API 연결은 보류 중.
+ * 사용처: P02·P03·D01의 useInvestmentStatus에서 공통 캐시로 2초 주기·포커스·재연결·수동 재시도 조회.
  * 요청: 로그인·CSRF 불필요. 본문·쿼리 없음.
  * 응답: 200, InvestmentStatus — { status, revision, updatedAt? }.
  * RUNNING은 신규 투자 접수, PAUSED는 신규 투자 중지이며 로그인·조회는 계속 가능합니다.
@@ -43,7 +43,7 @@ export const getInvestmentStatus = async (
 ): Promise<InvestmentStatus> => {
   const response = await apiClient.get<InvestmentStatus>(
     "/public/investment-status",
-    { signal },
+    { signal, timeout: 15_000 },
   );
 
   return response.data;

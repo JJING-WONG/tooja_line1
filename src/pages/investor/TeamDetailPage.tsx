@@ -9,6 +9,8 @@ import arrowBack from "../../assets/ArrowBack.svg";
 import teamLogo from "../../assets/TeamLogo.svg";
 import { useInvestmentConfirmation } from "../../features/investment/hooks/useCreateInvestment";
 
+import { latestInvestmentStatus, useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmentStatus";
+
 const amounts = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000];
 
 export default function TeamDetailPage() {
@@ -17,6 +19,8 @@ export default function TeamDetailPage() {
   const parsedId = pathTeamId && /^\d+$/.test(pathTeamId) ? Number(pathTeamId) : NaN;
   const teamId = Number.isSafeInteger(parsedId) && parsedId >= 1 && parsedId <= 20 ? parsedId : null;
   const query = useInvestorTeam(teamId);
+  const statusQuery = useInvestmentStatus();
+  const investmentStatus = latestInvestmentStatus(statusQuery.data, query.data?.investmentStatus);
   const status = isAxiosError(query.error) ? query.error.response?.status : undefined;
   const isMissing = teamId === null || status === 404 || status === 422;
   if (isMissing || query.isError) {
@@ -36,7 +40,10 @@ export default function TeamDetailPage() {
     return <Navigate to="/invest" replace />;
   }
   // 재조회가 진행 중이면 확정을 막고, 최신 응답 도착 시 선택·열린 확인창을 초기화합니다.
-  return <TeamDetailContent key={`${teamId}:${query.dataUpdatedAt}`} detail={query.data} isRefreshing={query.isFetching} />;
+  return <>
+    {statusQuery.isError && <ErrorDialog title="투자 접수 상태를 확인하지 못했어요" message="상태를 다시 확인한 뒤 투자해 주세요." confirmLabel="재시도" isBusy={statusQuery.isFetching} onBack={() => navigate("/invest")} onConfirm={() => void statusQuery.refetch()} />}
+    <TeamDetailContent key={`${teamId}:${query.dataUpdatedAt}:${investmentStatus?.revision}`} detail={{ ...query.data, investmentStatus: investmentStatus ?? query.data.investmentStatus }} isRefreshing={query.isFetching || !statusQuery.isSuccess} />
+  </>;
 }
 
 function TeamDetailContent({ detail, isRefreshing }: { detail: components["schemas"]["TeamDetail"]; isRefreshing: boolean }) {

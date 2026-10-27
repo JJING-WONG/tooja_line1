@@ -3,7 +3,7 @@ import DesktopErrorDialog from "../../components/ui/DesktopErrorDialog";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import dashboardLogo from "../../assets/DashboardLogo.png";
 import dashboardPaused from "../../assets/DashboardPaused.svg";
-import type { components } from "../../apis/schema";
+import { useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmentStatus";
 
 import { useDashboard } from "../../features/dashboard/hooks/useDashboard";
 
@@ -13,16 +13,13 @@ const updatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
 
 const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 
-export default function DashboardPage({
-  investmentStatus = "RUNNING",
-}: {
-  investmentStatus?: components["schemas"]["InvestmentStatus"]["status"];
-}) {
+export default function DashboardPage() {
   const query = useDashboard();
-  const isPaused = investmentStatus === "PAUSED";
+  const statusQuery = useInvestmentStatus();
+  const isPaused = statusQuery.data?.status === "PAUSED";
   const isInitialLoading = !query.data && !query.isError;
   const isInitialError = !query.data && query.isError;
-  const connectionStatus = query.isError ? "reconnecting" : "connected";
+  const connectionStatus = query.isError || statusQuery.isError ? "reconnecting" : "connected";
   const lastUpdatedAt = query.data ? updatedAtFormatter.format(new Date(query.data.asOf)) : "—";
   const ranking = query.data?.teams ?? [];
   const topAmount = Math.max(0, ...ranking.map((team) => team.raisedAmount));

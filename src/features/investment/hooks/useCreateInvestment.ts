@@ -7,6 +7,8 @@ import { investorSessionQueryKey } from "../../auth/hooks/useInvestorSession";
 import { clearPendingInvestment, InvestmentFailure, readPendingInvestment, resolveInvestment, savePendingInvestment } from "../utils/investmentRequest";
 import type { PendingInvestment } from "../utils/investmentRequest";
 
+import { investmentStatusQueryKey, latestInvestmentStatus } from "../../dashboard/hooks/useInvestmentStatus";
+
 type Session = components["schemas"]["InvestorSession"];
 type Selection = { teamId: number; amount: number; balanceAfter: number };
 type View = { selection: Selection | null; status: "idle" | "submitting" | "checking" | "error" | "unknown"; message?: string };
@@ -112,8 +114,10 @@ export function useCreateInvestment(investorId: string) {
       assertSession();
       const detailQuery = queryClient.getQueryCache().find({ queryKey: ["investor", "team", investorId, view.selection.teamId] });
       const detail = detailQuery?.state.data as components["schemas"]["TeamDetail"] | undefined;
-      if (!detail || detailQuery?.state.fetchStatus !== "idle" || detailQuery.state.status !== "success" ||
-        detail.investmentStatus.status !== "RUNNING" || detail.team.investmentState !== "AVAILABLE" ||
+      const publicStatus = queryClient.getQueryState<components["schemas"]["InvestmentStatus"]>(investmentStatusQueryKey);
+      const status = latestInvestmentStatus(publicStatus?.data, detail?.investmentStatus);
+      if (publicStatus?.status === "error" || !detail || detailQuery?.state.fetchStatus !== "idle" || detailQuery.state.status !== "success" ||
+        status?.status !== "RUNNING" || detail.team.investmentState !== "AVAILABLE" ||
         !detail.team.allowedAmounts.includes(view.selection.amount)) {
         setView((previous) => ({ ...previous, status: "error", message: "투자 가능 상태가 변경되었어요. 금액을 다시 선택해 주세요." }));
         void queryClient.invalidateQueries({ queryKey: ["investor", "team", investorId, view.selection.teamId] });

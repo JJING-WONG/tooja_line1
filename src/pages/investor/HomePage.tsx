@@ -7,10 +7,14 @@ import InvestorSummary from "../../features/investor/components/InvestorSummary"
 import BoothMap from "../../features/investor/components/BoothMap";
 import { useInvestorTeams } from "../../features/investor/hooks/useInvestorTeams";
 
+import { latestInvestmentStatus, useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmentStatus";
+
 export default function HomePage() {
   const { logout, isPending, errorMessage } = useInvestorLogout();
   const teamsQuery = useInvestorTeams();
   const home = teamsQuery.data;
+  const statusQuery = useInvestmentStatus();
+  const investmentStatus = latestInvestmentStatus(statusQuery.data, home?.investmentStatus);
   const [dismissedErrorAt, setDismissedErrorAt] = useState<number | null>(null);
   const isLoading = teamsQuery.isFetching && !isPending;
 
@@ -68,6 +72,12 @@ export default function HomePage() {
             </button>
           </div>
         )}
+        {statusQuery.isError && (
+          <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
+            <p>투자 접수 상태를 갱신하지 못했어요. 잠시 후 다시 확인해 주세요.</p>
+            <button type="button" disabled={statusQuery.isFetching} onClick={() => void statusQuery.refetch()} className="mt-2 cursor-pointer rounded text-secondary underline disabled:opacity-60">다시 시도</button>
+          </div>
+        )}
         {home && (
           <>
             <InvestorSummary investor={home.investor} />
@@ -75,7 +85,7 @@ export default function HomePage() {
               teams={home.teams}
               isStaff={home.investor.kind === "STAFF"}
               isCompleted={home.investor.spendingStatus === "COMPLETED"}
-              isPaused={home.investmentStatus.status === "PAUSED"}
+              isPaused={investmentStatus?.status === "PAUSED"}
             />
           </>
         )}
