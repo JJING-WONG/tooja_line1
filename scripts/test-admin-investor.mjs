@@ -15,7 +15,7 @@ try {
   const sessionKey = ["auth", "admin", "session"], adminId = "admin-1", investorId = "investor-a";
   const key = adminInvestorQueryKey(adminId, investorId);
   const session = { admin: { adminId, role: "ADMIN" }, csrfToken: "token" };
-  const investor = { investorId, alias: "서버 투자자 별칭", kind: "PARTICIPANT", teamId: 9, issuedAmount: 1000000, investedAmount: 700000, balance: 300000, spendingStatus: "UNSPENT", hasLoggedIn: true };
+  const investor = { investorId, alias: "서버 투자자 별칭", kind: "PARTICIPANT", teamId: 9, issuedAmount: 1000000, investedAmount: 700000, balance: 300000, spendingStatus: "UNSPENT" };
   const investments = [{ investmentId: "new", teamId: 5, serviceName: "서버 최신 서비스", amount: 500000, confirmedAt: "2026-10-25T16:05:00Z" }, { investmentId: "old", teamId: 2, serviceName: "서버 이전 서비스", amount: 200000, confirmedAt: "2026-10-25T00:00:00Z" }];
   const data = { investor, investments, asOf: "2026-10-25T16:05:00Z" };
   const failure = (status, headers = {}) => new AxiosError("test", undefined, undefined, undefined, { status, data: { error: { code: status === 403 ? "FORBIDDEN" : status === 404 ? "RESOURCE_NOT_FOUND" : status === 429 ? "RATE_LIMITED" : "INTERNAL_ERROR" } }, headers });
@@ -27,7 +27,7 @@ try {
   for (const text of ["서버 투자자 별칭", "TEAM 09", "1,000,000원", "700,000원", "300,000원", "미소진", "서버 최신 서비스", "서버 이전 서비스", "10.26 01:05"]) assert.ok(html.includes(text), text);
   assert.ok(html.indexOf("서버 최신 서비스") < html.indexOf("서버 이전 서비스"));
   const staff = render(client({ ...data, investor: { ...investor, alias: "실제 운영팀 별칭", kind: "STAFF", teamId: undefined } })); assert.ok(staff.includes("실제 운영팀 별칭")); assert.ok(staff.includes("운영팀")); assert.ok(!staff.includes("참가자")); assert.ok(!staff.includes("TEAM undefined"));
-  const unpaid = render(client({ ...data, investor: { ...investor, issuedAmount: 0, investedAmount: 0, balance: 0, spendingStatus: "NOT_ACTIVATED" }, investments: [] })); assert.equal((unpaid.match(/>0원</g) || []).length, 3); assert.ok(unpaid.includes("미지급")); assert.ok(unpaid.includes("아직 투자한 팀이 없어요")); assert.ok(!unpaid.includes("전부 소진"));
+  const uninvested = render(client({ ...data, investor: { ...investor, investedAmount: 0, balance: 1000000, spendingStatus: "UNSPENT" }, investments: [] })); assert.equal((uninvested.match(/>1,000,000원</g) || []).length, 2); assert.equal((uninvested.match(/>0원</g) || []).length, 1); assert.ok(uninvested.includes("미소진")); assert.ok(!uninvested.includes("미지급")); assert.ok(uninvested.includes("아직 투자한 팀이 없어요")); assert.ok(!uninvested.includes("전부 소진"));
   const completed = render(client({ ...data, investor: { ...investor, investedAmount: 1000000, balance: 0, spendingStatus: "COMPLETED" } })); assert.ok(completed.includes("마일리지가 전부 소진되었어요")); assert.ok(completed.includes("소진 완료"));
   assert.ok(render(client({ ...data, investments: [] })).includes("아직 투자한 팀이 없어요")); assert.ok(render(client(null)).includes("LoadingArc.png"));
   for (const status of [404, 500]) { const q = client(); q.getQueryCache().find({ queryKey: key }).setState({ status: "error", error: failure(status), errorUpdatedAt: Date.now(), fetchStatus: "idle" }); const h = render(q); assert.ok(h.includes(status === 404 ? "투자자를 찾을 수 없어요" : "정보를 불러오지 못했어요")); assert.ok(h.includes("투자자 목록으로")); assert.ok(!h.includes("서버 투자자 별칭")); if (status === 404) assert.ok(!render(q, { isStatusError: true }).includes("<dialog")); }

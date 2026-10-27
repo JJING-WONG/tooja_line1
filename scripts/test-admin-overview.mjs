@@ -18,10 +18,10 @@ try {
   const { default: Sidebar } = await server.ssrLoadModule("/src/features/admin/components/AdminSidebar.tsx");
   const sessionKey = ["auth", "admin", "session"], key = adminOverviewQueryKey("admin-1");
   const session = { admin: { adminId: "admin-1", role: "ADMIN" }, csrfToken: "admin-token", expiresAt: "2026-10-27T00:00:00Z" };
-  const metrics = { registeredInvestorCount: 7, activatedInvestorCount: 4, notActivatedCount: 3, investedInvestorCount: 3, totalIssuedAmount: 4000000, totalInvestedAmount: 1700000, totalBalance: 2300000, completedCount: 1, unspentCount: 3 };
+  const metrics = { registeredInvestorCount: 7, investedInvestorCount: 3, totalIssuedAmount: 7000000, totalInvestedAmount: 1700000, totalBalance: 5300000, completedCount: 1, unspentCount: 6 };
   const running = { status: "RUNNING", revision: 1, updatedAt: null };
   const paused = { status: "PAUSED", revision: 2, updatedAt: "2026-10-25T00:00:00Z" };
-  const data = { total: metrics, participants: metrics, staff: { ...metrics, registeredInvestorCount: 0, activatedInvestorCount: 0, notActivatedCount: 0, investedInvestorCount: 0, totalIssuedAmount: 0, totalInvestedAmount: 0, totalBalance: 0, completedCount: 0, unspentCount: 0 }, asOf: "2026-10-25T16:05:06Z", snapshotVersion: 12, investmentStatus: running };
+  const data = { total: metrics, participants: metrics, staff: { ...metrics, registeredInvestorCount: 0, investedInvestorCount: 0, totalIssuedAmount: 0, totalInvestedAmount: 0, totalBalance: 0, completedCount: 0, unspentCount: 0 }, asOf: "2026-10-25T16:05:06Z", snapshotVersion: 12, investmentStatus: running };
   const clients = [];
   function client(value = data) { const c = new QueryClient(); clients.push(c); c.setQueryData(sessionKey, session); c.setQueryData(["investor", "teams", "investor-1"], { keep: true }); if (value) c.setQueryData(key, value); return c; }
   function wrap(c, element) { return renderToStaticMarkup(React.createElement(QueryClientProvider, { client: c }, React.createElement(IsRestoringProvider, { value: true }, React.createElement(MemoryRouter, { initialEntries: ["/admin"] }, element)))); }
@@ -35,12 +35,12 @@ try {
   const patch = value => ({ method: "patch", url: "/admin/investment-status", data: value });
 
   const c = client(), html = render(c);
-  for (const text of ["7명", "3명", "4,000,000원", "1,700,000원", "2,300,000원", "1명 / 3명", "01:05:06", "투자 진행 중"]) assert.ok(html.includes(text), text);
-  assert.ok(!html.includes("7,000,000원"));
+  for (const text of ["7명", "3명", "7,000,000원", "1,700,000원", "5,300,000원", "1명 / 6명", "01:05:06", "투자 진행 중"]) assert.ok(html.includes(text), text);
+  assert.ok(!html.includes("4,000,000원"));
   assert.ok(render(client({ ...data, investmentStatus: paused })).includes("투자 중단됨"));
   assert.ok(render(client(null)).includes("LoadingArc.png"));
-  const emptyError = client(); emptyError.getQueryCache().find({ queryKey: key }).setState({ data: undefined, status: "error", error: failure(500, "INTERNAL_ERROR"), fetchStatus: "idle" }); const initialError = render(emptyError); assert.ok(initialError.includes("정보를 불러오지 못했어요")); assert.ok(initialError.includes("<aside")); assert.ok(!initialError.includes("4,000,000원"));
-  const backgroundError = client(); backgroundError.getQueryCache().find({ queryKey: key }).setState({ status: "error", error: failure(500, "INTERNAL_ERROR"), fetchStatus: "idle" }); const background = render(backgroundError); assert.ok(background.includes("4,000,000원")); assert.ok(background.includes("갱신하지 못했어요"));
+  const emptyError = client(); emptyError.getQueryCache().find({ queryKey: key }).setState({ data: undefined, status: "error", error: failure(500, "INTERNAL_ERROR"), fetchStatus: "idle" }); const initialError = render(emptyError); assert.ok(initialError.includes("정보를 불러오지 못했어요")); assert.ok(initialError.includes("<aside")); assert.ok(!initialError.includes("7,000,000원"));
+  const backgroundError = client(); backgroundError.getQueryCache().find({ queryKey: key }).setState({ status: "error", error: failure(500, "INTERNAL_ERROR"), fetchStatus: "idle" }); const background = render(backgroundError); assert.ok(background.includes("7,000,000원")); assert.ok(background.includes("갱신하지 못했어요"));
   const unknownSidebar = wrap(client(), React.createElement(Sidebar, { isExpanded: true })); assert.equal((unknownSidebar.match(/disabled=""/g) || []).length, 2);
 
   hook(c, useAdminOverview); const query = c.getQueryCache().find({ queryKey: key }), options = query.options;
