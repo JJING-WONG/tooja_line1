@@ -5,60 +5,27 @@ import dashboardLogo from "../../assets/DashboardLogo.png";
 import dashboardPaused from "../../assets/DashboardPaused.svg";
 import type { components } from "../../apis/schema";
 
-// D01 시안 데이터입니다. 순위·금액·연결 상태와 갱신 강조는 API 미연동입니다.
-const previewRanking = [
-  { team: 7, amount: 8300000, bar: 620, change: 0 },
-  { team: 12, amount: 7600000, bar: 568, change: 3 },
-  { team: 3, amount: 7400000, bar: 553, change: 0 },
-  { team: 15, amount: 6900000, bar: 515, change: 0 },
-  { team: 1, amount: 6500000, bar: 486, change: -1 },
-  { team: 9, amount: 6200000, bar: 463, change: 0 },
-  { team: 18, amount: 6000000, bar: 448, change: 0 },
-  { team: 5, amount: 5700000, bar: 426, change: 1 },
-  { team: 20, amount: 5400000, bar: 403, change: -2 },
-  { team: 2, amount: 5100000, bar: 381, change: 0 },
-  { team: 11, amount: 4900000, bar: 366, change: 0 },
-  { team: 6, amount: 4600000, bar: 344, change: 0 },
-  { team: 14, amount: 4400000, bar: 329, change: 0 },
-  { team: 8, amount: 4100000, bar: 306, change: 0 },
-  { team: 17, amount: 3700000, bar: 276, change: 0 },
-  { team: 4, amount: 3400000, bar: 254, change: 0 },
-  { team: 19, amount: 3000000, bar: 224, change: 0 },
-  { team: 10, amount: 2600000, bar: 194, change: 0 },
-  { team: 13, amount: 1600000, bar: 120, change: 0 },
-  { team: 16, amount: 0, bar: 0, change: 0 },
-];
+import { useDashboard } from "../../features/dashboard/hooks/useDashboard";
+
+const updatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+});
 
 const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 
 export default function DashboardPage({
-  previewMode = "normal",
-  isInitialLoading = false,
-  isInitialError = false,
-  isRetrying = false,
-  onRetry,
-  connectionStatus = "connected",
-  lastUpdatedAt = "14:32:05",
   investmentStatus = "RUNNING",
 }: {
-  previewMode?: "normal" | "tied" | "zero";
-  isInitialLoading?: boolean;
-  isInitialError?: boolean;
-  isRetrying?: boolean;
-  onRetry?: () => void;
-  connectionStatus?: "connected" | "reconnecting";
-  lastUpdatedAt?: string;
   investmentStatus?: components["schemas"]["InvestmentStatus"]["status"];
 }) {
+  const query = useDashboard();
   const isPaused = investmentStatus === "PAUSED";
-  // 상태별 디자인 확인용 데이터입니다. 실제 조회 연결 시 응답의 rank를 사용합니다.
-  const ranking = previewRanking.map((item, index) =>
-    previewMode === "zero"
-      ? { ...item, amount: 0, bar: 0, change: 0 }
-      : previewMode === "tied" && index === 1
-        ? { ...item, amount: previewRanking[0].amount, bar: previewRanking[0].bar }
-        : item,
-  );
+  const isInitialLoading = !query.data && !query.isError;
+  const isInitialError = !query.data && query.isError;
+  const connectionStatus = query.isError ? "reconnecting" : "connected";
+  const lastUpdatedAt = query.data ? updatedAtFormatter.format(new Date(query.data.asOf)) : "—";
+  const ranking = query.data?.teams ?? [];
+  const topAmount = Math.max(0, ...ranking.map((team) => team.raisedAmount));
   const containerRef = useRef<HTMLElement>(null);
   const [scale, setScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -109,8 +76,8 @@ export default function DashboardPage({
         <DesktopErrorDialog
           title={<>순위 정보를<br />불러오지 못했어요</>}
           dimBackground
-          isRetrying={isRetrying}
-          onRetry={() => onRetry?.()}
+          isRetrying={query.isFetching}
+          onRetry={() => { if (!query.isFetching) void query.refetch(); }}
         />
       ) : <div
         className="relative shrink-0"
@@ -142,7 +109,7 @@ export default function DashboardPage({
                   총 투자액
                 </dt>
                 <dd className="text-[22px] leading-7.75 font-bold text-white">
-                  {previewMode === "zero" ? "0원" : "98,400,000원"}
+                  {query.data?.totalInvestedAmount.toLocaleString("ko-KR")}원
                 </dd>
               </div>
               <div className="w-15 shrink-0">
@@ -150,11 +117,11 @@ export default function DashboardPage({
                   참여 인원
                 </dt>
                 <dd className="text-[22px] leading-7.75 font-bold text-white">
-                  {previewMode === "zero" ? "0명" : "120명"}
+                  {query.data?.investedInvestorCount.toLocaleString("ko-KR")}명
                 </dd>
               </div>
             </dl>
-            {/* API 연결 시 마지막 성공 갱신 시각을 유지한 채 연결 상태만 바꿉니다. */}
+            {/* 갱신 실패 시 기존 데이터와 마지막 성공 조회 시각을 유지합니다. */}
             <div
               role="status"
               aria-live="polite"
@@ -201,9 +168,11 @@ export default function DashboardPage({
               ))}
             </div>
             <div role="rowgroup" className="flex flex-col gap-0.75">
-              {ranking.map(({ team, amount, bar, change }) => {
-                const rank = ranking.findIndex((item) => item.amount === amount) + 1;
-                const highlighted = previewMode !== "zero" && team === 12;
+              {ranking.map(({ teamId: team, raisedAmount: amount, rank, serviceName }) => {
+                const change = query.data?.changes[team]?.rankChange ?? 0;
+                const increase = query.data?.changes[team]?.amountIncrease ?? 0;
+                const highlighted = increase > 0;
+                const bar = topAmount > 0 ? (amount / topAmount) * 620 : 0;
                 return (
                   <div
                     key={team}
@@ -230,7 +199,7 @@ export default function DashboardPage({
                       role="cell"
                       className="truncate text-[13px] leading-4.5 text-[#9ca3af]"
                     >
-                      팀 {String(team).padStart(2, "0")} 데모 서비스
+                      {serviceName}
                     </span>
                     <div
                       role="cell"
@@ -254,7 +223,7 @@ export default function DashboardPage({
                     >
                       {highlighted && (
                         <span className="w-24.5 rounded-full bg-[#f3f4f6] py-0.5 text-center text-[11px] leading-3.75 text-[#111]">
-                          +500,000원 갱신
+                          +{increase.toLocaleString("ko-KR")}원 갱신
                         </span>
                       )}
                       <span
