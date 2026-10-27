@@ -268,7 +268,7 @@ export default function InvestorPerformancePage() {
             checked={onlyRanked}
             onChange={(event) => { closePopover(); setOnlyRanked(event.target.checked); }}
           />
-          <span>미소진자 제외</span>
+          <span>미투자자 제외</span>
         </label>
       </div>
 
@@ -301,7 +301,7 @@ export default function InvestorPerformancePage() {
               })}
             </tbody>
           </table>
-          {rankings.data && !visible.length && <div className="flex min-h-47.5 flex-col items-center justify-center gap-3 px-4 py-6.25 text-center text-[#777] [&_h3]:text-[16px] [&_h3]:font-bold [&_h3]:text-[#222]"><h3>{items.length ? "일치하는 투자자가 없어요" : "이 그룹에는 투자자가 없어요"}</h3><p>{items.length ? "검색어를 바꾸거나 ‘미소진자 제외’를 해제해 보세요." : "등록된 투자자가 생기면 이곳에 표시돼요."}</p>{items.length > 0 && <button type="button" className="min-h-11 rounded-xl border-[1.5px] border-[#c4c4c4] bg-white px-4.5 py-2.5 font-bold whitespace-nowrap text-[#333] hover:bg-[#f6f6f6] min-[1800px]:min-h-16.5 min-[1800px]:px-6.75 min-[1800px]:py-3.75" onClick={() => { closePopover(); setSearch(""); setOnlyRanked(false); }}>필터 초기화</button>}</div>}
+          {rankings.data && !visible.length && <div className="flex min-h-47.5 flex-col items-center justify-center gap-3 px-4 py-6.25 text-center text-[#777] [&_h3]:text-[16px] [&_h3]:font-bold [&_h3]:text-[#222]"><h3>{items.length ? "일치하는 투자자가 없어요" : "이 그룹에는 투자자가 없어요"}</h3><p>{items.length ? "검색어를 바꾸거나 ‘미투자자 제외’를 해제해 보세요." : "등록된 투자자가 생기면 이곳에 표시돼요."}</p>{items.length > 0 && <button type="button" className="min-h-11 rounded-xl border-[1.5px] border-[#c4c4c4] bg-white px-4.5 py-2.5 font-bold whitespace-nowrap text-[#333] hover:bg-[#f6f6f6] min-[1800px]:min-h-16.5 min-[1800px]:px-6.75 min-[1800px]:py-3.75" onClick={() => { closePopover(); setSearch(""); setOnlyRanked(false); }}>필터 초기화</button>}</div>}
           {!rankings.data && rankings.isError && <div className="flex min-h-47.5 flex-col items-center justify-center gap-3 px-4 py-6.25 text-center text-[#777] [&_h3]:text-[16px] [&_h3]:font-bold [&_h3]:text-[#222]"><p>조회가 완료되면 순위가 표시돼요.</p></div>}
         </div>
       </section>
