@@ -4,2670 +4,2719 @@
  */
 
 export interface paths {
-    "/api/v1/investor/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 로그인 상태 복구
-         * @description **사용 시점**: 새로고침하거나 투자자 화면에 다시 진입했을 때 로그인 상태를 복구합니다. 요청 본문·CSRF 헤더 없이 투자자 세션 쿠키로 호출합니다.
-         *
-         *     **성공 결과**: 현재 투자자 정보·잔액과 세션의 `csrfToken`, `expiresAt`을 반환합니다. 응답 토큰을 이후 투자·로그아웃 요청에 사용하세요. 투자금을 추가 지급하거나 세션 만료를 연장하지 않습니다.
-         *
-         *     401이면 투자자 로그인 화면으로 이동하세요. 관리자 세션만 있는 경우 403이며 관리자 로그인 상태가 투자자 로그인 상태를 대신하지 않습니다.
-         */
-        get: operations["investorSession"];
-        put?: never;
-        /**
-         * [모두 허용] 투자자 코드 로그인
-         * @description **사용 시점**: 투자자가 사전 발급받은 코드를 입력하고 로그인 버튼을 누를 때 호출합니다. 먼저 투자자 로그인 준비 API를 호출하세요.
-         *
-         *     **입력**: `code`는 ASCII 숫자 4자리 **문자열**입니다. 예: `{"code":"0037"}`. 앞자리 0을 유지해야 하므로 숫자 37로 보내면 안 됩니다. 일회용 코드가 아니며 재로그인에도 같은 코드를 사용합니다.
-         *
-         *     **성공 결과**: 최초 로그인에만 1,000,000원을 지급합니다. 재로그인·여러 기기 동시 로그인으로 추가 지급하지 않습니다. 응답의 `investor`로 별칭·소속·잔액을 표시하고 `csrfToken`을 새 값으로 교체하세요. 세션 쿠키는 브라우저가 관리하며 만료 시각은 `expiresAt`입니다. 세션은 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
-         *
-         *     같은 브라우저의 이전 투자자 세션은 교체합니다. 다른 기기의 세션과 관리자 세션은 유지합니다. 코드가 없거나 비활성 계정의 코드이면 모두 동일한 `AUTHENTICATION_FAILED`를 반환합니다. 로그인 횟수 제한은 프론트엔드 localStorage에서 적용하며 이 API 자체는 로그인 IP 제한을 적용하지 않습니다.
-         */
-        post: operations["investorLogin"];
-        /**
-         * [모두 허용] 투자자 로그아웃
-         * @description **사용 시점**: 투자자 로그아웃 버튼을 누를 때 호출합니다. 본문 없이 투자자용 `X-CSRF-Token`과 허용된 `Origin`을 보내세요.
-         *
-         *     **성공 결과**: 현재 브라우저의 투자자 세션과 로그인 준비 쿠키만 폐기하고 204(응답 본문 없음)를 반환합니다. 프론트엔드의 투자자 정보·CSRF 토큰을 지우고 로그인 화면으로 이동하세요. 관리자 세션과 다른 기기의 투자자 세션은 유지합니다.
-         *
-         *     이미 로그아웃했거나 세션이 만료되었어도 CSRF 검증은 필요합니다. 먼저 투자자 로그인 준비 API에서 토큰을 다시 받은 뒤 호출하면 204로 종료할 수 있습니다.
-         */
-        delete: operations["investorLogout"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/api/v1/investor/session": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/investments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 내 거래 최신순 목록
-         * @description **사용 시점**: 내 투자 내역 화면을 열거나 투자 후 내역을 갱신할 때 호출합니다.
-         *
-         *     **성공 결과**: 본인의 확정 거래만 최신 확정 시각 순으로 반환하며 같은 시각이면 저장 순서의 역순입니다. `items`는 거래 목록, `count`는 전체 거래 수, `investor`는 현재 잔액·소진 상태입니다. 투자 전이면 HTTP 200, 빈 배열, count=0입니다.
-         *
-         *     페이지네이션은 없습니다. 거절된 투자 요청은 거래 목록에 포함하지 않습니다. 완료 상세로 이동할 때 각 항목의 `investmentId`를 사용하세요.
-         */
-        get: operations["listMyInvestments"];
-        put?: never;
-        /**
-         * [투자자] 투자 확정
-         * @description **중지 중 처리**: 신규 요청은 409 INVESTMENT_PAUSED이며 요청 키를 소비하지 않아요. 재개 후 같은 키·본문으로 다시 시도할 수 있어요. 이미 커밋된 같은 키·본문은 중지 중에도 원래 결과를 반환해요.
-         *     **사용 시점**: 금액 선택·확인 후 사용자가 최종 투자 버튼을 눌렀을 때 호출합니다. 확정 거래는 취소·수정할 수 없습니다.
-         *
-         *     **입력**: 본문은 `{"teamId":2,"amount":100000}` 형태입니다. 팀 번호는 1~20, 금액은 100000~700000 사이의 정수이며 100000의 배수여야 합니다. `Idempotency-Key` 헤더에는 이번 투자에 사용할 UUID v4를 새로 생성해 보내고, 투자자 `X-CSRF-Token`도 보내세요.
-         *
-         *     **성공 결과**: 잔액 차감과 거래 저장을 하나의 트랜잭션으로 확정한 뒤 201과 영수증, 거래 조회 경로 `Location`을 반환합니다. `balanceAfterInvestment`는 그 거래 직후 잔액이며 이후 다른 거래로 바뀐 현재 잔액과 다를 수 있습니다.
-         *
-         *     **중복·재시도**: 전송 전에 요청 키·본문을 보관하세요. 같은 투자자·같은 키·같은 본문을 다시 보내면 최초 성공 영수증(201) 또는 최초 확정 거절을 그대로 반환합니다. 같은 키로 팀이나 금액을 바꾸면 409입니다. 새 요청의 도메인 검사는 자기 팀 → 이미 투자한 팀 → 잔액 부족 순서입니다. 운영팀 투자자는 자기 팀 제한이 없습니다.
-         *
-         *     **연결이 끊기면**: 실패로 단정하지 말고 요청 결과 조회 API를 호출하세요. 결과가 없으면 같은 키·같은 본문으로 재전송합니다. 응답이 불확실한 투자에 새 키를 발급하지 마세요. 입력·CSRF 오류는 요청 결과로 저장하지 않으며, 도메인 거절은 REJECTED로 저장합니다.
-         */
-        post: operations["createInvestment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 로그인 상태 복구
+     * @description **사용 시점**: 새로고침하거나 투자자 화면에 다시 진입했을 때 로그인 상태를 복구합니다. 요청 본문·CSRF 헤더 없이 투자자 세션 쿠키로 호출합니다.
+     *
+     *     **성공 결과**: 현재 투자자 정보·잔액과 세션의 `csrfToken`, `expiresAt`을 반환합니다. 응답 토큰을 이후 투자·로그아웃 요청에 사용하세요. 투자금을 추가 지급하거나 세션 만료를 연장하지 않습니다.
+     *
+     *     401이면 투자자 로그인 화면으로 이동하세요. 관리자 세션만 있는 경우 403이며 관리자 로그인 상태가 투자자 로그인 상태를 대신하지 않습니다.
+     */
+    get: operations["investorSession"];
+    put?: never;
+    /**
+     * [모두 허용] 투자자 코드 로그인
+     * @description **사용 시점**: 투자자가 사전 발급받은 코드를 입력하고 로그인 버튼을 누를 때 호출합니다. 먼저 투자자 로그인 준비 API를 호출하세요.
+     *
+     *     **입력**: `code`는 ASCII 숫자 4자리 **문자열**입니다. 예: `{"code":"0037"}`. 앞자리 0을 유지해야 하므로 숫자 37로 보내면 안 됩니다. 일회용 코드가 아니며 재로그인에도 같은 코드를 사용합니다.
+     *
+     *     **성공 결과**: 투자자는 사전 등록할 때 1,000,000원을 지급받습니다. 로그인·재로그인·여러 기기 동시 로그인은 지급액과 잔액을 변경하지 않습니다. 응답의 `investor`로 이름·소속·잔액을 표시하고 `csrfToken`을 새 값으로 교체하세요. 세션 쿠키는 브라우저가 관리하며 만료 시각은 `expiresAt`입니다. 세션은 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
+     *
+     *     같은 브라우저의 이전 투자자 세션은 교체합니다. 다른 기기의 세션과 관리자 세션은 유지합니다. 코드가 없거나 비활성 계정의 코드이면 모두 동일한 `AUTHENTICATION_FAILED`를 반환합니다. 로그인 횟수 제한은 프론트엔드 localStorage에서 적용하며 이 API 자체는 로그인 IP 제한을 적용하지 않습니다.
+     */
+    post: operations["investorLogin"];
+    /**
+     * [모두 허용] 투자자 로그아웃
+     * @description **사용 시점**: 투자자 로그아웃 버튼을 누를 때 호출합니다. 본문 없이 투자자용 `X-CSRF-Token`과 허용된 `Origin`을 보내세요.
+     *
+     *     **성공 결과**: 현재 브라우저의 투자자 세션과 로그인 준비 쿠키만 폐기하고 204(응답 본문 없음)를 반환합니다. 프론트엔드의 투자자 정보·CSRF 토큰을 지우고 로그인 화면으로 이동하세요. 관리자 세션과 다른 기기의 투자자 세션은 유지합니다.
+     *
+     *     이미 로그아웃했거나 세션이 만료되었어도 CSRF 검증은 필요합니다. 먼저 투자자 로그인 준비 API에서 토큰을 다시 받은 뒤 호출하면 204로 종료할 수 있습니다.
+     */
+    delete: operations["investorLogout"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/investments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [관리자] 로그인 상태 복구
-         * @description **사용 시점**: 관리자 화면을 새로고침하거나 다시 열었을 때 로그인 상태를 복구합니다. 관리자 세션 쿠키로 호출하며 요청 본문·CSRF 헤더는 필요 없습니다.
-         *
-         *     **성공 결과**: 관리자 정보와 현재 세션의 `csrfToken`, `expiresAt`을 반환합니다. 응답 토큰을 별칭 수정·관리자 로그아웃 요청에 사용하세요. 세션 만료 시각은 연장하지 않습니다.
-         *
-         *     401이면 관리자 로그인 화면으로 이동하세요. 투자자 세션만 있는 경우 403이며 운영팀 투자자로 로그인한 상태도 관리자 권한을 부여하지 않습니다.
-         */
-        get: operations["adminSession"];
-        put?: never;
-        /**
-         * [모두 허용] 관리자 코드 로그인
-         * @description **사용 시점**: 관리자가 사전 발급받은 관리자 코드를 입력할 때 호출합니다. 먼저 관리자 로그인 준비 API를 호출하세요.
-         *
-         *     **입력**: `code`는 ASCII 숫자 4자리 문자열입니다. 예: `{"code":"4821"}`. 투자자 코드로 관리자 로그인할 수 없습니다.
-         *
-         *     **성공 결과**: 관리자 세션 쿠키와 `admin`, 새 `csrfToken`, `expiresAt`을 반환합니다. 이후 관리자 쓰기 요청에는 이 새 토큰을 사용하세요. 투자금은 지급하지 않습니다. 발급 후 48시간 고정 만료이며 여러 기기에서 동시 로그인할 수 있습니다.
-         *
-         *     같은 브라우저의 이전 관리자 세션만 교체하며 투자자 세션은 유지합니다. 운영팀 투자자(STAFF)와 관리자(ADMIN)는 서로 다른 권한입니다. 유효하지 않은 코드는 계정 존재 여부를 구분하지 않고 `AUTHENTICATION_FAILED`로 응답합니다. 로그인 횟수 제한은 프론트엔드 localStorage에서 적용합니다.
-         */
-        post: operations["adminLogin"];
-        /**
-         * [모두 허용] 관리자 로그아웃
-         * @description **사용 시점**: 관리자 로그아웃 버튼을 누를 때 호출합니다. 본문 없이 관리자용 `X-CSRF-Token`과 허용된 `Origin`을 보내세요.
-         *
-         *     **성공 결과**: 현재 브라우저의 관리자 세션과 준비 쿠키만 폐기하고 204(본문 없음)를 반환합니다. 프론트엔드 관리자 정보·토큰을 지우세요. 투자자 세션과 다른 기기의 관리자 세션은 유지합니다.
-         *
-         *     세션이 없거나 만료되었어도 CSRF 검증은 수행합니다. 관리자 로그인 준비 API에서 토큰을 다시 받은 뒤 호출하면 이미 로그아웃한 상태도 204로 종료할 수 있습니다.
-         */
-        delete: operations["adminLogout"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 내 거래 최신순 목록
+     * @description **사용 시점**: 내 투자 내역 화면을 열거나 투자 후 내역을 갱신할 때 호출합니다.
+     *
+     *     **성공 결과**: 본인의 확정 거래만 최신 확정 시각 순으로 반환하며 같은 시각이면 저장 순서의 역순입니다. `items`는 거래 목록, `count`는 전체 거래 수, `investor`는 현재 잔액·소진 상태입니다. 투자 전이면 HTTP 200, 빈 배열, count=0입니다.
+     *
+     *     페이지네이션은 없습니다. 거절된 투자 요청은 거래 목록에 포함하지 않습니다. 완료 상세로 이동할 때 각 항목의 `investmentId`를 사용하세요.
+     */
+    get: operations["listMyInvestments"];
+    put?: never;
+    /**
+     * [투자자] 투자 확정
+     * @description **중지 중 처리**: 신규 요청은 409 INVESTMENT_PAUSED이며 요청 키를 소비하지 않아요. 재개 후 같은 키·본문으로 다시 시도할 수 있어요. 이미 커밋된 같은 키·본문은 중지 중에도 원래 결과를 반환해요.
+     *     **사용 시점**: 금액 선택·확인 후 사용자가 최종 투자 버튼을 눌렀을 때 호출합니다. 확정 거래는 취소·수정할 수 없습니다.
+     *
+     *     **입력**: 본문은 `{"teamId":2,"amount":100000}` 형태입니다. 팀 번호는 1~20, 금액은 100000~700000 사이의 정수이며 100000의 배수여야 합니다. `Idempotency-Key` 헤더에는 이번 투자에 사용할 UUID v4를 새로 생성해 보내고, 투자자 `X-CSRF-Token`도 보내세요.
+     *
+     *     **성공 결과**: 잔액 차감과 거래 저장을 하나의 트랜잭션으로 확정한 뒤 201과 영수증, 거래 조회 경로 `Location`을 반환합니다. `balanceAfterInvestment`는 그 거래 직후 잔액이며 이후 다른 거래로 바뀐 현재 잔액과 다를 수 있습니다.
+     *
+     *     **중복·재시도**: 전송 전에 요청 키·본문을 보관하세요. 같은 투자자·같은 키·같은 본문을 다시 보내면 최초 성공 영수증(201) 또는 최초 확정 거절을 그대로 반환합니다. 같은 키로 팀이나 금액을 바꾸면 409입니다. 새 요청의 도메인 검사는 자기 팀 → 이미 투자한 팀 → 잔액 부족 순서입니다. 운영팀 투자자는 자기 팀 제한이 없습니다.
+     *
+     *     **연결이 끊기면**: 실패로 단정하지 말고 요청 결과 조회 API를 호출하세요. 결과가 없으면 같은 키·같은 본문으로 재전송합니다. 응답이 불확실한 투자에 새 키를 발급하지 마세요. 입력·CSRF 오류는 요청 결과로 저장하지 않으며, 도메인 거절은 REJECTED로 저장합니다.
+     */
+    post: operations["createInvestment"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/session": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/investors/{investorId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [관리자] 투자자 잔액·거래 조회
-         * @description **사용 시점**: 관리자 목록에서 한 투자자를 선택해 지급·잔액·거래 내역을 확인할 때 호출합니다. 목록에서 받은 내부 `investorId`를 사용하며 로그인 코드를 넣지 않습니다.
-         *
-         *     **성공 결과**: 해당 투자자의 정보와 확정 거래 최신순 목록, 조회 시각을 반환합니다. 미로그인자도 조회 가능하며 지급액·잔액은 0, 상태는 NOT_ACTIVATED, 거래는 빈 배열입니다. 운영팀 투자자도 조회할 수 있습니다.
-         *
-         *     존재하지 않거나 비활성인 투자자 및 관리자 ID를 조회하면 404입니다. 거절 요청·로그인 코드·세션 정보는 노출하지 않습니다.
-         */
-        get: operations["getInvestorDetail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * [관리자] 별칭 수정
-         * @description **사용 시점**: 관리자가 투자자의 표시 별칭을 수정하고 저장할 때 호출합니다. 관리자 세션과 관리자용 CSRF 토큰이 필요합니다.
-         *
-         *     **입력**: `{"alias":"새 별칭"}`만 보냅니다. 별칭은 1~40자이며 앞뒤 공백·줄바꿈은 허용하지 않습니다. 중간 공백과 다른 투자자와의 별칭 중복은 허용합니다. 서버가 자동으로 trim하지 않으므로 프론트엔드에서 입력을 정리하거나 오류를 표시하세요.
-         *
-         *     **성공 결과**: HTTP 200과 수정된 투자자 정보를 반환합니다. 목록·상세의 별칭을 이 응답으로 갱신하세요. 코드·소속팀·잔액·권한은 변경하지 않습니다. 동시 수정은 마지막 저장 값이 적용됩니다. 대상이 없거나 비활성 또는 관리자 계정이면 404입니다.
-         */
-        patch: operations["updateInvestorAlias"];
-        trace?: never;
+    /**
+     * [관리자] 로그인 상태 복구
+     * @description **사용 시점**: 관리자 화면을 새로고침하거나 다시 열었을 때 로그인 상태를 복구합니다. 관리자 세션 쿠키로 호출하며 요청 본문·CSRF 헤더는 필요 없습니다.
+     *
+     *     **성공 결과**: 관리자 정보와 현재 세션의 `csrfToken`, `expiresAt`을 반환합니다. 응답 토큰을 투자 중지·재개와 관리자 로그아웃 요청에 사용하세요. 세션 만료 시각은 연장하지 않습니다.
+     *
+     *     401이면 관리자 로그인 화면으로 이동하세요. 투자자 세션만 있는 경우 403이며 운영팀 투자자로 로그인한 상태도 관리자 권한을 부여하지 않습니다.
+     */
+    get: operations["adminSession"];
+    put?: never;
+    /**
+     * [모두 허용] 관리자 코드 로그인
+     * @description **사용 시점**: 관리자가 사전 발급받은 관리자 코드를 입력할 때 호출합니다. 먼저 관리자 로그인 준비 API를 호출하세요.
+     *
+     *     **입력**: `code`는 ASCII 숫자 4자리 문자열입니다. 예: `{"code":"4821"}`. 투자자 코드로 관리자 로그인할 수 없습니다.
+     *
+     *     **성공 결과**: 관리자 세션 쿠키와 `admin`, 새 `csrfToken`, `expiresAt`을 반환합니다. 이후 관리자 쓰기 요청에는 이 새 토큰을 사용하세요. 투자금은 지급하지 않습니다. 발급 후 48시간 고정 만료이며 여러 기기에서 동시 로그인할 수 있습니다.
+     *
+     *     같은 브라우저의 이전 관리자 세션만 교체하며 투자자 세션은 유지합니다. 운영팀 투자자(STAFF)와 관리자(ADMIN)는 서로 다른 권한입니다. 유효하지 않은 코드는 계정 존재 여부를 구분하지 않고 `AUTHENTICATION_FAILED`로 응답합니다. 로그인 횟수 제한은 프론트엔드 localStorage에서 적용합니다.
+     */
+    post: operations["adminLogin"];
+    /**
+     * [모두 허용] 관리자 로그아웃
+     * @description **사용 시점**: 관리자 로그아웃 버튼을 누를 때 호출합니다. 본문 없이 관리자용 `X-CSRF-Token`과 허용된 `Origin`을 보내세요.
+     *
+     *     **성공 결과**: 현재 브라우저의 관리자 세션과 준비 쿠키만 폐기하고 204(본문 없음)를 반환합니다. 프론트엔드 관리자 정보·토큰을 지우세요. 투자자 세션과 다른 기기의 관리자 세션은 유지합니다.
+     *
+     *     세션이 없거나 만료되었어도 CSRF 검증은 수행합니다. 관리자 로그인 준비 API에서 토큰을 다시 받은 뒤 호출하면 이미 로그아웃한 상태도 204로 종료할 수 있습니다.
+     */
+    delete: operations["adminLogout"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/investment-status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/investment-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * [관리자] 전체 투자 중지·재개
-         * @description **사용 시점**: 관리자만 전체 투자를 중지하거나 재개할 수 있어요. 중지는 {"status":"PAUSED"}, 재개는 {"status":"RUNNING"}을 보내주세요. 관리자 세션과 해당 세션의 X-CSRF-Token, 허용 Origin이 필요해요. **성공 결과**: 이미 같은 상태면 변경 없이 같은 revision과 updatedAt을 반환해요. 중지 응답이 성공한 뒤 들어온 신규 투자는 409 INVESTMENT_PAUSED예요. 중지와 동시에 들어와 먼저 확정된 투자는 유지돼요. 로그인, 최초 지급, 잔액·내역·순위 조회는 계속 가능하고 이전 성공 요청의 재전송은 기존 영수증을 반환해요. 중지로 거절된 요청 키는 소비하지 않으므로 재개 후 같은 키·본문으로 다시 시도할 수 있어요. 잔액과 거래·순위 버전을 변경하지 않아요.
-         */
-        patch: operations["updateInvestmentStatus"];
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * [관리자] 전체 투자 중지·재개
+     * @description **사용 시점**: 관리자만 전체 투자를 중지하거나 재개할 수 있어요. 중지는 {"status":"PAUSED"}, 재개는 {"status":"RUNNING"}을 보내주세요. 관리자 세션과 해당 세션의 X-CSRF-Token, 허용 Origin이 필요해요. **성공 결과**: 이미 같은 상태면 변경 없이 같은 revision과 updatedAt을 반환해요. 중지 응답이 성공한 뒤 들어온 신규 투자는 409 INVESTMENT_PAUSED예요. 중지와 동시에 들어와 먼저 확정된 투자는 유지돼요. 로그인, 최초 지급, 잔액·내역·순위 조회는 계속 가능하고 이전 성공 요청의 재전송은 기존 영수증을 반환해요. 중지로 거절된 요청 키는 소비하지 않으므로 재개 후 같은 키·본문으로 다시 시도할 수 있어요. 잔액과 거래·순위 버전을 변경하지 않아요.
+     */
+    patch: operations["updateInvestmentStatus"];
+    trace?: never;
+  };
+  "/api/v1/public/investment-status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/public/investment-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [모두 허용] 투자 접수 상태 확인
-         * @description **사용 시점**: 로그인 없이 지금 투자를 접수하는지 확인해요. RUNNING이면 신규 투자를 접수하고, PAUSED이면 신규 투자를 거절해요. revision은 실제 상태 변경 때만 증가하고 updatedAt은 마지막 변경 시각이에요. **성공 결과**: 최초 상태는 RUNNING, revision=0, updatedAt=null이에요. 서버를 다시 시작해도 저장된 상태가 유지돼요.
-         */
-        get: operations["getInvestmentStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [모두 허용] 투자 접수 상태 확인
+     * @description **사용 시점**: 로그인 없이 지금 투자를 접수하는지 확인해요. RUNNING이면 신규 투자를 접수하고, PAUSED이면 신규 투자를 거절해요. revision은 실제 상태 변경 때만 증가하고 updatedAt은 마지막 변경 시각이에요. **성공 결과**: 최초 상태는 RUNNING, revision=0, updatedAt=null이에요. 서버를 다시 시작해도 저장된 상태가 유지돼요.
+     */
+    get: operations["getInvestmentStatus"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/public/dashboard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/public/dashboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [모두 허용] 20개 팀의 실시간 순위
-         * @description **사용 시점**: 공개 실시간 순위 화면을 표시·갱신할 때 호출합니다. 로그인과 CSRF 토큰이 필요 없습니다.
-         *
-         *     **성공 결과**: 투자금 내림차순으로 정렬한 20개 팀, 전체 확정 투자금, 1회 이상 투자한 인원, snapshotVersion, asOf를 반환합니다. 투자금이 없는 팀도 포함합니다. 공동 순위는 경쟁 순위 방식(1, 1, 3)이며 동률 팀은 팀 번호 순입니다. 전부 0원이면 모두 1위입니다. 화면 배열 인덱스 대신 응답의 rank를 표시하세요.
-         *
-         *     **갱신 처리**: 화면은 주기적으로 이 API를 호출합니다. snapshotVersion은 투자 확정 때 증가하므로 같은 버전이면 순위 변동 애니메이션을 반복하지 않아도 됩니다. asOf는 조회 시각이며 최종 마감 시각이 아닙니다. 응답은 개인별 정보·로그인 코드를 포함하지 않습니다. 429면 Retry-After(초) 이후 재시도하세요. 전체 투자 중지·재개는 별도 investment-status API를 사용해요. 결과 동결 기능은 없습니다.
-         */
-        get: operations["getDashboard"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [모두 허용] 20개 팀의 실시간 순위
+     * @description **사용 시점**: 공개 실시간 순위 화면을 표시·갱신할 때 호출합니다. 로그인과 CSRF 토큰이 필요 없습니다.
+     *
+     *     **성공 결과**: 투자금 내림차순으로 정렬한 20개 팀, 전체 확정 투자금, 1회 이상 투자한 인원, snapshotVersion, asOf를 반환합니다. 투자금이 없는 팀도 포함합니다. 공동 순위는 경쟁 순위 방식(1, 1, 3)이며 동률 팀은 팀 번호 순입니다. 전부 0원이면 모두 1위입니다. 화면 배열 인덱스 대신 응답의 rank를 표시하세요.
+     *
+     *     **갱신 처리**: 화면은 주기적으로 이 API를 호출합니다. snapshotVersion은 투자 확정 때 증가하므로 같은 버전이면 순위 변동 애니메이션을 반복하지 않아도 됩니다. asOf는 조회 시각이며 최종 마감 시각이 아닙니다. 응답은 개인별 정보·로그인 코드를 포함하지 않습니다. 429면 Retry-After(초) 이후 재시도하세요. 전체 투자 중지·재개는 별도 investment-status API를 사용해요. 결과 동결 기능은 없습니다.
+     */
+    get: operations["getDashboard"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/teams": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/teams": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 20개 부스 목록
-         * @description **전체 접수 상태**: investmentStatus.status가 PAUSED면 소개 조회는 가능하지만 투자 버튼을 비활성화해요. RUNNING일 때 팀별 investmentState와 allowedAmounts를 함께 확인하세요.
-         *     **사용 시점**: 투자자 부스 목록 화면을 열거나 투자 후 목록을 갱신할 때 호출합니다.
-         *
-         *     **성공 결과**: 현재 투자자 정보와 팀 번호 오름차순의 20개 팀을 반환합니다. 자기 팀·이미 투자한 팀도 목록에서 제외하지 않습니다. 팀 소개와 본인 투자 금액만 제공하며 다른 투자자의 투자 정보·팀 전체 유치액·순위는 포함하지 않습니다.
-         *
-         *     **화면 처리**: `investmentState`가 `SELF_TEAM`이면 자기 팀, `ALREADY_INVESTED`이면 투자 완료, `BALANCE_EXHAUSTED`이면 잔액 소진, `AVAILABLE`이면 투자 가능으로 표시하세요. 이 순서로 상태를 판정합니다. `allowedAmounts`는 현재 잔액으로 선택할 수 있는 금액 목록이며 투자 불가 상태는 빈 배열입니다. 서버의 상태·금액 목록을 사용하되 최종 투자 시 서버가 다시 검증합니다.
-         */
-        get: operations["listTeams"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 20개 부스 목록
+     * @description **전체 접수 상태**: investmentStatus.status가 PAUSED면 소개 조회는 가능하지만 투자 버튼을 비활성화해요. RUNNING일 때 팀별 investmentState와 allowedAmounts를 함께 확인하세요.
+     *     **사용 시점**: 투자자 부스 목록 화면을 열거나 투자 후 목록을 갱신할 때 호출합니다.
+     *
+     *     **성공 결과**: 현재 투자자 정보와 팀 번호 오름차순의 20개 팀을 반환합니다. 자기 팀·이미 투자한 팀도 목록에서 제외하지 않습니다. 팀 소개와 본인 투자 금액만 제공하며 다른 투자자의 투자 정보·팀 전체 유치액·순위는 포함하지 않습니다.
+     *
+     *     **화면 처리**: `investmentState`가 `SELF_TEAM`이면 자기 팀, `ALREADY_INVESTED`이면 투자 완료, `BALANCE_EXHAUSTED`이면 잔액 소진, `AVAILABLE`이면 투자 가능으로 표시하세요. 이 순서로 상태를 판정합니다. `allowedAmounts`는 현재 잔액으로 선택할 수 있는 금액 목록이며 투자 불가 상태는 빈 배열입니다. 서버의 상태·금액 목록을 사용하되 최종 투자 시 서버가 다시 검증합니다.
+     */
+    get: operations["listTeams"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/teams/{teamId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/teams/{teamId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 부스 소개·투자 가능 상태
-         * @description **전체 접수 상태**: investmentStatus.status가 PAUSED면 소개 조회는 가능하지만 투자 버튼을 비활성화해요. 상태가 화면 로드 이후 바뀌어도 서버가 확정 시 다시 검사해요.
-         *     **사용 시점**: 부스 목록에서 한 팀을 선택해 소개·금액 선택 화면을 열 때 호출합니다. `teamId`는 목록에서 받은 정수 팀 번호입니다.
-         *
-         *     **성공 결과**: 최신 투자자 잔액과 해당 팀의 소개, 본인 투자 금액, `investmentState`, `allowedAmounts`를 반환합니다. 자기 팀·이미 투자한 팀도 조회는 가능하며 투자 불가 상태로 응답합니다.
-         *
-         *     **화면 처리**: 10만~70만원의 7개 금액 버튼을 표시하고 `allowedAmounts`에 없는 값은 비활성화하세요. 상태가 `AVAILABLE`일 때만 투자 버튼을 활성화합니다. 이 조회와 투자 확정 사이에 다른 기기에서 투자하면 실제 잔액이 바뀔 수 있으므로 투자 오류 후 다시 조회하세요. 정수로 해석할 수 없는 경로값은 422, 존재하지 않는 팀 번호는 404입니다.
-         */
-        get: operations["getTeam"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 부스 소개·투자 가능 상태
+     * @description **전체 접수 상태**: investmentStatus.status가 PAUSED면 소개 조회는 가능하지만 투자 버튼을 비활성화해요. 상태가 화면 로드 이후 바뀌어도 서버가 확정 시 다시 검사해요.
+     *     **사용 시점**: 부스 목록에서 한 팀을 선택해 소개·금액 선택 화면을 열 때 호출합니다. `teamId`는 목록에서 받은 정수 팀 번호입니다.
+     *
+     *     **성공 결과**: 최신 투자자 잔액과 해당 팀의 소개, 본인 투자 금액, `investmentState`, `allowedAmounts`를 반환합니다. 자기 팀·이미 투자한 팀도 조회는 가능하며 투자 불가 상태로 응답합니다.
+     *
+     *     **화면 처리**: 10만~70만원의 7개 금액 버튼을 표시하고 `allowedAmounts`에 없는 값은 비활성화하세요. 상태가 `AVAILABLE`일 때만 투자 버튼을 활성화합니다. 이 조회와 투자 확정 사이에 다른 기기에서 투자하면 실제 잔액이 바뀔 수 있으므로 투자 오류 후 다시 조회하세요. 정수로 해석할 수 없는 경로값은 422, 존재하지 않는 팀 번호는 404입니다.
+     */
+    get: operations["getTeam"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 내 잔액·소속 조회
-         * @description **사용 시점**: 투자자 화면에서 현재 잔액·별칭·소속·소진 상태만 갱신할 때 호출합니다.
-         *
-         *     **성공 결과**: 로그인한 본인의 `Investor`를 반환합니다. `kind=PARTICIPANT`는 참가자이며 `teamId`가 소속팀입니다. `kind=STAFF`는 운영팀 투자자이며 소속팀은 null입니다. 로그인 코드는 반환하지 않습니다.
-         *
-         *     `issuedAmount`는 최초 지급액, `investedAmount`는 확정 투자 합계, `balance`는 현재 잔액입니다. `UNSPENT`는 잔액이 남음, `COMPLETED`는 전액 소진을 뜻합니다. 조회만으로 지급·차감·세션 연장을 수행하지 않습니다.
-         */
-        get: operations["getMyInvestor"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 내 잔액·소속 조회
+     * @description **사용 시점**: 투자자 화면에서 현재 잔액·이름·소속·소진 상태만 갱신할 때 호출합니다.
+     *
+     *     **성공 결과**: 로그인한 본인의 `Investor`를 반환합니다. `kind=PARTICIPANT`는 참가자이며 `teamId`가 소속팀입니다. `kind=STAFF`는 운영팀 투자자이며 소속팀은 null입니다. 로그인 코드는 반환하지 않습니다.
+     *
+     *     `issuedAmount`는 최초 지급액, `investedAmount`는 확정 투자 합계, `balance`는 현재 잔액입니다. `UNSPENT`는 잔액이 남음, `COMPLETED`는 전액 소진을 뜻합니다. 조회만으로 지급·차감·세션 연장을 수행하지 않습니다.
+     */
+    get: operations["getMyInvestor"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/investments/{investmentId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/investments/{investmentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 투자 완료 상세
-         * @description **사용 시점**: 투자 완료 화면이나 내역의 거래 상세 화면을 열 때 호출합니다. 확정 영수증·거래 목록에서 받은 `investmentId`를 사용하세요.
-         *
-         *     **성공 결과**: 확정한 팀·금액·확정 시각과 조회 시점의 `currentBalance`, `asOf`를 반환합니다. `currentBalance`는 당시 영수증의 `balanceAfterInvestment`와 달리 이후 거래까지 반영한 현재 잔액입니다.
-         *
-         *     없는 거래와 다른 투자자 소유 거래는 모두 404 `RESOURCE_NOT_FOUND`입니다. 이 API에서 투자 취소·수정은 할 수 없습니다.
-         */
-        get: operations["getMyInvestment"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 투자 완료 상세
+     * @description **사용 시점**: 투자 완료 화면이나 내역의 거래 상세 화면을 열 때 호출합니다. 확정 영수증·거래 목록에서 받은 `investmentId`를 사용하세요.
+     *
+     *     **성공 결과**: 확정한 팀·금액·확정 시각과 조회 시점의 `currentBalance`, `asOf`를 반환합니다. `currentBalance`는 당시 영수증의 `balanceAfterInvestment`와 달리 이후 거래까지 반영한 현재 잔액입니다.
+     *
+     *     없는 거래와 다른 투자자 소유 거래는 모두 404 `RESOURCE_NOT_FOUND`입니다. 이 API에서 투자 취소·수정은 할 수 없습니다.
+     */
+    get: operations["getMyInvestment"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/investment-requests/{requestKey}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/investment-requests/{requestKey}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [투자자] 응답이 끊긴 투자 결과 확인
-         * @description **사용 시점**: 투자 확정 요청의 응답이 끊기거나 새로고침한 뒤 결과를 확인할 때 호출합니다. 투자 요청 때 사용한 UUID v4를 `requestKey` 경로에 넣으세요. 현재 투자자 소유의 결과만 조회합니다.
-         *
-         *     **성공 결과(HTTP 200)**: `status=SUCCEEDED`이면 `result`에 최초 영수증이 있습니다. `status=REJECTED`이면 `originalHttpStatus`와 `error`에 저장된 거절 이유가 있습니다. REJECTED는 이 조회 API의 HTTP 오류가 아니라 정상 조회된 투자 결과입니다.
-         *
-         *     **404 처리**: `REQUEST_RESULT_NOT_FOUND`는 요청이 도착하지 않았거나 아직 커밋되지 않았거나 다른 투자자의 키인 경우입니다. 투자 실패 확정이라는 뜻이 아닙니다. 보관한 같은 키·같은 본문으로 투자 확정 API를 재전송해 결과를 복구하세요. 이 서버는 동기 처리이므로 202·PROCESSING 상태를 반환하지 않습니다.
-         */
-        get: operations["getInvestmentRequest"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [투자자] 응답이 끊긴 투자 결과 확인
+     * @description **사용 시점**: 투자 확정 요청의 응답이 끊기거나 새로고침한 뒤 결과를 확인할 때 호출합니다. 투자 요청 때 사용한 UUID v4를 `requestKey` 경로에 넣으세요. 현재 투자자 소유의 결과만 조회합니다.
+     *
+     *     **성공 결과(HTTP 200)**: `status=SUCCEEDED`이면 `result`에 최초 영수증이 있습니다. `status=REJECTED`이면 `originalHttpStatus`와 `error`에 저장된 거절 이유가 있습니다. REJECTED는 이 조회 API의 HTTP 오류가 아니라 정상 조회된 투자 결과입니다.
+     *
+     *     **404 처리**: `REQUEST_RESULT_NOT_FOUND`는 요청이 도착하지 않았거나 아직 커밋되지 않았거나 다른 투자자의 키인 경우입니다. 투자 실패 확정이라는 뜻이 아닙니다. 보관한 같은 키·같은 본문으로 투자 확정 API를 재전송해 결과를 복구하세요. 이 서버는 동기 처리이므로 202·PROCESSING 상태를 반환하지 않습니다.
+     */
+    get: operations["getInvestmentRequest"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/investor/csrf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/investor/csrf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [모두 허용] 투자자 로그인 준비
-         * @description **사용 시점**: 투자자 로그인 화면을 열었을 때 먼저 호출합니다. 로그인하지 않은 브라우저도 호출할 수 있습니다.
-         *
-         *     **호출 순서**: 이 응답의 `csrfToken`을 보관한 뒤 투자자 로그인·로그아웃 요청의 `X-CSRF-Token` 헤더에 넣으세요. 서버가 함께 내려주는 HttpOnly 쿠키는 브라우저가 보관하고 다음 요청에 보내야 합니다.
-         *
-         *     **성공 결과**: 유효한 투자자 세션이 있으면 그 세션의 토큰을 반환합니다. 없으면 10분짜리 로그인 준비 쿠키와 새 토큰을 발급합니다. 관리자 세션과는 별개입니다. 준비 API를 다시 호출해 쿠키가 바뀌면 가장 최근 응답의 토큰을 사용하세요. 투자자 로그인 성공 후에는 로그인 응답의 새 토큰으로 교체합니다.
-         */
-        get: operations["investorCsrf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [모두 허용] 투자자 로그인 준비
+     * @description **사용 시점**: 투자자 로그인 화면을 열었을 때 먼저 호출합니다. 로그인하지 않은 브라우저도 호출할 수 있습니다.
+     *
+     *     **호출 순서**: 이 응답의 `csrfToken`을 보관한 뒤 투자자 로그인·로그아웃 요청의 `X-CSRF-Token` 헤더에 넣으세요. 서버가 함께 내려주는 HttpOnly 쿠키는 브라우저가 보관하고 다음 요청에 보내야 합니다.
+     *
+     *     **성공 결과**: 유효한 투자자 세션이 있으면 그 세션의 토큰을 반환합니다. 없으면 10분짜리 로그인 준비 쿠키와 새 토큰을 발급합니다. 관리자 세션과는 별개입니다. 준비 API를 다시 호출해 쿠키가 바뀌면 가장 최근 응답의 토큰을 사용하세요. 투자자 로그인 성공 후에는 로그인 응답의 새 토큰으로 교체합니다.
+     */
+    get: operations["investorCsrf"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/overview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [관리자] 전체·역할별 지급·소진 현황
-         * @description **사용 시점**: 관리자 현황 화면의 등록·지급·투자·미소진 요약을 표시하거나 갱신할 때 호출합니다.
-         *
-         *     **성공 결과**: `total`은 전체 투자자, `participants`는 참가자, `staff`는 운영팀 투자자 집계입니다. 관리자 계정은 집계하지 않습니다. 사전 발급했으나 로그인하지 않은 사람도 등록 인원에 포함하지만 지급액·투자액·잔액은 0원이며 `notActivatedCount`로 구분합니다.
-         *
-         *     **수치 해석**: `activatedInvestorCount`는 최초 로그인하여 지급받은 인원, `investedInvestorCount`는 1회 이상 투자한 인원입니다. `unspentCount`는 지급받았고 잔액이 남은 인원, `completedCount`는 지급받고 전액 사용한 인원입니다. 미지급자와 전액 소진자의 잔액은 둘 다 0원이므로 잔액만으로 분류하지 마세요.
-         *
-         *     모든 수치는 같은 조회 스냅샷이며 `asOf`가 조회 시각입니다. investmentStatus로 전체 투자 접수 상태를 함께 확인해요. 관리자는 중지·재개할 수 있으며 자동 감점·최종 결과 고정은 수행하지 않습니다. 필요할 때 관리자가 화면을 캡처해 기록합니다.
-         */
-        get: operations["getOverview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [관리자] 전체·역할별 지급·소진 현황
+     * @description **사용 시점**: 관리자 현황 화면의 등록·지급·투자·미소진 요약을 표시하거나 갱신할 때 호출합니다.
+     *
+     *     **성공 결과**: `total`은 전체 투자자, `participants`는 참가자, `staff`는 운영팀 투자자 집계입니다. 관리자 계정은 집계하지 않습니다. 사전 등록한 투자자는 로그인 여부와 무관하게 100만원을 지급받고 등록·지급·잔액 집계에 포함됩니다.
+     *
+     *     **수치 해석**: `investedInvestorCount`는 1회 이상 투자한 인원입니다. `unspentCount`는 잔액이 남은 인원, `completedCount`는 전액 사용한 인원입니다. 두 인원의 합계는 등록 투자자 수와 같습니다. 미로그인 인원은 별도로 집계하지 않습니다.
+     *
+     *     모든 수치는 같은 조회 스냅샷이며 `asOf`가 조회 시각입니다. investmentStatus로 전체 투자 접수 상태를 함께 확인해요. 관리자는 중지·재개할 수 있으며 자동 감점·최종 결과 고정은 수행하지 않습니다. 필요할 때 관리자가 화면을 캡처해 기록합니다.
+     */
+    get: operations["getOverview"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/investors": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/investors": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [관리자] 투자자 검색·필터
-         * @description **사용 시점**: 관리자 투자자 목록에서 검색·필터링하거나 미소진자·미지급자를 확인할 때 호출합니다. 네 필터를 모두 생략하면 전체 투자자를 반환합니다.
-         *
-         *     **필터**: `q`는 별칭 또는 내부 투자자 ID의 부분 검색(대소문자 무시, 최대 100자)입니다. `teamId`는 참가자 소속팀 1~20, `kind`는 PARTICIPANT 또는 STAFF입니다. `spendingStatus=UNSPENT`는 지급 후 잔액이 남은 사람, `NOT_ACTIVATED`는 미로그인·미지급자, `COMPLETED`는 지급 후 전액 사용한 사람입니다.
-         *
-         *     예: 미소진자만 보려면 `?spendingStatus=UNSPENT`, 돈을 아직 받지 않은 사람은 `?spendingStatus=NOT_ACTIVATED`로 호출하세요. 여러 필터는 AND 조건입니다. STAFF에는 소속팀이 없어 STAFF와 teamId를 함께 지정하면 빈 목록입니다. 선택 필터는 생략해도 정상이며, **전달한 값이 허용값이 아닐 때만** 값 검증 오류입니다.
-         *
-         *     **성공 결과**: 별칭·내부 ID 순으로 정렬한 전체 결과와 count, asOf를 반환합니다. 페이지네이션은 없고 일치 항목이 없으면 200·빈 배열입니다. 로그인 코드와 관리자 계정은 포함하지 않습니다. 알 수 없는 쿼리 키·같은 키 중복은 422입니다.
-         */
-        get: operations["listInvestors"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [관리자] 투자자 검색·필터
+     * @description **사용 시점**: 관리자 투자자 목록에서 검색·필터링하거나 미소진자를 확인할 때 호출합니다. 네 필터를 모두 생략하면 전체 투자자를 반환합니다.
+     *
+     *     **필터**: `q`는 이름 또는 내부 투자자 ID의 부분 검색(대소문자 무시, 최대 100자)입니다. `teamId`는 참가자 소속팀 1~20, `kind`는 PARTICIPANT 또는 STAFF입니다. `spendingStatus=UNSPENT`는 잔액이 남은 사람, `COMPLETED`는 전액 사용한 사람입니다. 미로그인 여부는 조회하지 않습니다.
+     *
+     *     예: 미소진자만 보려면 `?spendingStatus=UNSPENT`, 소진 완료자만 보려면 `?spendingStatus=COMPLETED`로 호출하세요. 여러 필터는 AND 조건입니다. STAFF에는 소속팀이 없어 STAFF와 teamId를 함께 지정하면 빈 목록입니다. 선택 필터는 생략해도 정상이며, **전달한 값이 허용값이 아닐 때만** 값 검증 오류입니다.
+     *
+     *     **성공 결과**: 이름·내부 ID 순으로 정렬한 전체 결과와 count, asOf를 반환합니다. 페이지네이션은 없고 일치 항목이 없으면 200·빈 배열입니다. 로그인 코드와 관리자 계정은 포함하지 않습니다. 알 수 없는 쿼리 키·같은 키 중복은 422입니다.
+     */
+    get: operations["listInvestors"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/investors/{investorId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/admin/csrf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * [모두 허용] 관리자 로그인 준비
-         * @description **사용 시점**: 관리자 로그인 화면을 열었을 때 먼저 호출합니다. 로그인 여부와 관계없이 호출할 수 있습니다.
-         *
-         *     **호출 순서**: 응답의 `csrfToken`을 관리자 로그인·로그아웃 요청의 `X-CSRF-Token` 헤더에 넣으세요. 함께 발급되는 HttpOnly 쿠키도 다음 요청에 전송해야 합니다.
-         *
-         *     **성공 결과**: 관리자 세션이 유효하면 기존 세션의 토큰을 반환합니다. 없으면 10분짜리 준비 쿠키와 새 토큰을 발급합니다. 재호출하면 가장 최근 토큰을 사용하고, 로그인 성공 후에는 로그인 응답의 새 토큰으로 교체하세요. 투자자용 토큰을 여기서 대신 사용할 수 없습니다.
-         */
-        get: operations["adminCsrf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * [관리자] 투자자 잔액·거래 조회
+     * @description **사용 시점**: 관리자 목록에서 한 투자자를 선택해 지급·잔액·거래 내역을 확인할 때 호출합니다. 목록에서 받은 내부 `investorId`를 사용하며 로그인 코드를 넣지 않습니다.
+     *
+     *     **성공 결과**: 해당 투자자의 정보와 확정 거래 최신순 목록, 조회 시각을 반환합니다. 등록 직후에도 지급액·잔액은 100만원, 상태는 UNSPENT, 거래는 빈 배열입니다. 운영팀 투자자도 조회할 수 있습니다.
+     *
+     *     존재하지 않거나 비활성인 투자자 및 관리자 ID를 조회하면 404입니다. 거절 요청·로그인 코드·세션 정보는 노출하지 않습니다.
+     */
+    get: operations["getInvestorDetail"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/investor-rankings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /**
+     * [관리자] 투자자 성과 순위
+     * @description **사용 시점**: 관리자가 현재 투자자 성과 순위를 확인하거나 새로고침할 때 호출해요. 관리자 세션이 필요하고 GET이므로 CSRF 토큰은 필요 없어요. 투자 접수 중·중지 중 모두 조회할 수 있어요.
+     *
+     *     **입력**: group은 선택이며 생략하면 ALL(전체)이에요. PARTICIPANT는 참가자, STAFF는 운영팀 투자자예요. 대소문자를 구분하며 빈 값·공백·다른 값은 422예요. 다른 쿼리 키와 같은 키의 중복 전달도 422예요.
+     *
+     *     **성공 결과**: 한 DB 스냅샷의 전체 투자로 팀 순위와 점수를 계산해요. 그룹은 출력 대상과 개인 순위에만 적용하므로 그룹을 바꿔도 같은 사람의 점수는 같아요. 투자금 10만원당 팀 1~10등은 +10~+1점, 11~20등은 -1~-10점이에요. 투자한 팀별 점수의 합이 개인 score예요. 팀 동점은 1·1·3이며 같은 순위는 같은 배점이에요. 0원 팀은 이 성과 계산에서 공동 20등으로 취급해요. 기존 공개 팀 대시보드의 순위 규칙은 변경하지 않아요.
+     *
+     *     100만원을 전부 투자한 사람끼리만 선택 그룹 안에서 순위를 매겨요. 개인 동점도 1·1·3이에요. 미소진자는 점수는 계산하지만 rank는 명시적으로 null이에요. 투자가 없으면 score=0, contributions=[]예요. 순위가 있는 사람을 먼저, 미소진자를 나중에 표시하며 각 구간은 점수 내림차순·이름 오름차순·ID 오름차순이에요. 관리자·삭제된 투자자는 목록에서 제외해요. 결과가 없으면 items=[], count=0으로 성공해요. 페이지네이션은 없어요.
+     *
+     *     contributions는 투자 대상 팀·현재 팀 순위·투자액·10만원당 배점·획득 점수이며 팀 번호순이에요. 잔액·지급액·소진 상태·코드는 반환하지 않아요. asOf는 읽기 스냅샷을 확보한 기준 시각(UTC), snapshotVersion은 그 스냅샷의 투자 버전이에요. 조회마다 다시 계산하고 Cache-Control: no-store로 반환해요. 조회는 돈·거래·접수 상태를 변경하거나 결과를 저장하지 않아요. DB 접근 실패 시 503, 그 외 예기치 않은 계산 실패는 500이며 빈 결과로 대체하지 않아요.
+     */
+    get: operations["getInvestorRankings"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/admin/csrf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * [모두 허용] 관리자 로그인 준비
+     * @description **사용 시점**: 관리자 로그인 화면을 열었을 때 먼저 호출합니다. 로그인 여부와 관계없이 호출할 수 있습니다.
+     *
+     *     **호출 순서**: 응답의 `csrfToken`을 관리자 로그인·로그아웃 요청의 `X-CSRF-Token` 헤더에 넣으세요. 함께 발급되는 HttpOnly 쿠키도 다음 요청에 전송해야 합니다.
+     *
+     *     **성공 결과**: 관리자 세션이 유효하면 기존 세션의 토큰을 반환합니다. 없으면 10분짜리 준비 쿠키와 새 토큰을 발급합니다. 재호출하면 가장 최근 토큰을 사용하고, 로그인 성공 후에는 로그인 응답의 새 토큰으로 교체하세요. 투자자용 토큰을 여기서 대신 사용할 수 없습니다.
+     */
+    get: operations["adminCsrf"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        LoginInput: {
-            /**
-             * @description ASCII 숫자 4자리 문자열. 재사용하는 사전 발급 코드이며 앞자리 0을 유지합니다. 숫자 타입은 400입니다.
-             * @example 0037
-             */
-            code: string;
-        };
-        /** @description 참가자 또는 운영팀 투자자. 관리자는 투자금 지급 대상이 아닙니다. */
-        Investor: {
-            /** @description 서버 내부 투자자 ID. 로그인 코드는 응답에 포함하지 않습니다. */
-            investorId: string;
-            /** @description 관리자가 수정할 수 있는 표시 별칭. 중복은 허용합니다. */
-            alias: string;
-            /**
-             * @description PARTICIPANT=참가자, STAFF=운영팀 투자자. 운영팀 투자자는 관리자 권한이 없습니다.
-             * @enum {string}
-             */
-            kind: "PARTICIPANT" | "STAFF";
-            /**
-             * Format: int32
-             * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
-             */
-            teamId?: number;
-            /** @description 최초 로그인·지급을 완료했으면 true. */
-            hasLoggedIn: boolean;
-            /**
-             * Format: int32
-             * @description 최초 로그인 전 0원, 이후 100만원. 재지급하지 않습니다.
-             */
-            issuedAmount: number;
-            /**
-             * Format: int32
-             * @description 확정한 투자 금액 합계, 원 단위.
-             */
-            investedAmount: number;
-            /**
-             * Format: int32
-             * @description 현재 남은 투자금, 원 단위. 미지급자의 0원은 완료를 뜻하지 않습니다.
-             */
-            balance: number;
-            /**
-             * @description NOT_ACTIVATED=미로그인·미지급, UNSPENT=지급 후 잔액 남음, COMPLETED=전액 투자 완료.
-             * @enum {string}
-             */
-            spendingStatus: "NOT_ACTIVATED" | "UNSPENT" | "COMPLETED";
-        };
-        InvestorSession: {
-            investor: components["schemas"]["Investor"];
-            /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
-            csrfToken: string;
-            /**
-             * Format: date-time
-             * @description 세션 만료 시각(UTC). 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
-             */
-            expiresAt: string;
-        };
-        InvestmentInput: {
-            /**
-             * Format: int32
-             * @description 투자 대상 팀 번호(1~20). 참가자는 소속팀에 투자할 수 없습니다.
-             */
-            teamId: number;
-            /**
-             * Format: int32
-             * @description 원 단위 정수. 10만~70만원, 10만원 단위.
-             */
-            amount: number;
-        };
-        Investment: {
-            /** @description 확정 거래 ID. 내 거래 상세 경로에서 사용합니다. */
-            investmentId: string;
-            /**
-             * Format: int32
-             * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
-             */
-            teamId: number;
-            /** @description 부스의 서비스 표시 이름. */
-            serviceName: string;
-            /**
-             * Format: int32
-             * @description 원 단위 정수. 10만~70만원, 10만원 단위.
-             */
-            amount: number;
-            /**
-             * Format: date-time
-             * @description 거래 확정 시각(UTC).
-             */
-            confirmedAt: string;
-        };
-        InvestmentReceipt: {
-            investment: components["schemas"]["Investment"];
-            /**
-             * Format: int32
-             * @description 해당 거래 확정 당시 잔액. 멱등 재전송도 같은 영수증을 반환합니다.
-             */
-            balanceAfterInvestment: number;
-            /**
-             * Format: int64
-             * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
-             */
-            snapshotVersion: number;
-        };
-        Admin: {
-            adminId: string;
-            role: string;
-        };
-        AdminSession: {
-            admin: components["schemas"]["Admin"];
-            /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
-            csrfToken: string;
-            /**
-             * Format: date-time
-             * @description 세션 만료 시각(UTC). 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
-             */
-            expiresAt: string;
-        };
-        AliasInput: {
-            /** @description 새 표시 별칭. 1~40자, 앞뒤 공백·CR/LF 불가. 중복 허용, 자동 trim 없음. */
-            alias: string;
-        };
-        InvestmentStatusInput: {
-            /**
-             * @description 목표 상태 RUNNING 또는 PAUSED. 필수 문자열이며 알 수 없는 값·누락·null은 400 INVALID_REQUEST입니다. 같은 상태 재요청은 추가 변경이 없습니다.
-             * @enum {string}
-             */
-            status: "RUNNING" | "PAUSED";
-        };
-        /** @description 전체 투자 접수 상태. 중지해도 로그인·조회와 기존 영수증 복구는 가능합니다. */
-        InvestmentStatus: {
-            /**
-             * @description RUNNING=신규 투자 접수, PAUSED=신규 투자 중지. 로그인·조회는 계속 가능합니다.
-             * @enum {string}
-             */
-            status: "RUNNING" | "PAUSED";
-            /**
-             * Format: int64
-             * @description 실제 상태 변경 때만 증가하는 버전. 초기값 0이며 투자 snapshotVersion과 별개입니다.
-             */
-            revision: number;
-            /**
-             * Format: date-time
-             * @description 마지막 상태 변경 시각 UTC. 아직 변경하지 않았으면 null.
-             */
-            updatedAt?: string;
-        };
-        Dashboard: {
-            /**
-             * Format: int64
-             * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
-             */
-            snapshotVersion: number;
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-            /**
-             * Format: int64
-             * @description 확정 투자 금액 합계(원).
-             */
-            totalInvestedAmount: number;
-            /**
-             * Format: int32
-             * @description 1회 이상 투자한 고유 투자자 수.
-             */
-            investedInvestorCount: number;
-            teams: components["schemas"]["RankingRow"][];
-        };
-        RankingRow: {
-            /**
-             * Format: int32
-             * @description 경쟁 순위 1·1·3. 화면 배열 인덱스로 순위를 계산하지 마세요.
-             */
-            rank: number;
-            /**
-             * Format: int32
-             * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
-             */
-            teamId: number;
-            /** @description 부스의 서비스 표시 이름. */
-            serviceName: string;
-            /**
-             * Format: int64
-             * @description 이 팀에 확정된 전체 투자액 합계(원).
-             */
-            raisedAmount: number;
-        };
-        Team: {
-            /**
-             * Format: int32
-             * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
-             */
-            teamId: number;
-            /** @description 부스의 서비스 표시 이름. */
-            serviceName: string;
-            /** @description 부스의 서비스 소개. */
-            description: string;
-            /**
-             * @description SELF_TEAM → ALREADY_INVESTED → BALANCE_EXHAUSTED → AVAILABLE 우선순위.
-             * @enum {string}
-             */
-            investmentState: "SELF_TEAM" | "ALREADY_INVESTED" | "BALANCE_EXHAUSTED" | "AVAILABLE";
-            /**
-             * Format: int32
-             * @description 이 투자자가 이 팀에 확정한 투자액. 아직 투자하지 않았으면 0.
-             */
-            myInvestmentAmount: number;
-            /** @description 현재 잔액 이하의 선택 가능 금액. 화면은 7개 버튼을 모두 표시하고 나머지는 비활성화합니다. */
-            allowedAmounts: number[];
-        };
-        TeamList: {
-            investor: components["schemas"]["Investor"];
-            teams: components["schemas"]["Team"][];
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-            /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
-            investmentStatus: components["schemas"]["InvestmentStatus"];
-        };
-        TeamDetail: {
-            investor: components["schemas"]["Investor"];
-            team: components["schemas"]["Team"];
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-            /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
-            investmentStatus: components["schemas"]["InvestmentStatus"];
-        };
-        InvestmentHistory: {
-            investor: components["schemas"]["Investor"];
-            items: components["schemas"]["Investment"][];
-            /**
-             * Format: int32
-             * @description 이 응답 목록의 전체 항목 수. 페이지네이션은 없습니다.
-             */
-            count: number;
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-        };
-        InvestmentDetail: {
-            investment: components["schemas"]["Investment"];
-            /**
-             * Format: int32
-             * @description 과거 거래 당시가 아닌 조회 시점의 현재 잔액.
-             */
-            currentBalance: number;
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-        };
-        ErrorBody: {
-            code: string;
-            /** @description 화면 표시용 오류 안내. 분기 처리는 message가 아닌 code로 하세요. */
-            message: string;
-            /** @description 추가 오류 정보. 입력 오류는 fieldErrors 배열을 포함할 수 있습니다. */
-            details: {
-                [key: string]: unknown;
-            };
-        };
-        RequestResult: {
-            /**
-             * @description SUCCEEDED=투자 확정 성공, REJECTED=투자 거절 확정. 조회 자체의 HTTP 상태는 둘 다 200.
-             * @enum {string}
-             */
-            status: "SUCCEEDED" | "REJECTED";
-            requestKey: string;
-            result?: components["schemas"]["InvestmentReceipt"];
-            /**
-             * Format: int32
-             * @description 저장된 투자 거절의 HTTP 상태. 이 결과 조회 자체는 HTTP 200입니다.
-             */
-            originalHttpStatus?: number;
-            error?: components["schemas"]["ErrorBody"];
-        };
-        Csrf: {
-            /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
-            csrfToken: string;
-        };
-        Metrics: {
-            /**
-             * Format: int32
-             * @description 사전 등록한 전체 투자자 수. 미로그인자 포함, 관리자 제외.
-             */
-            registeredInvestorCount: number;
-            /**
-             * Format: int32
-             * @description 최초 로그인 성공으로 투자금을 지급받은 사람 수.
-             */
-            activatedInvestorCount: number;
-            /**
-             * Format: int32
-             * @description 아직 로그인하지 않아 투자금을 받지 않은 사람 수.
-             */
-            notActivatedCount: number;
-            /**
-             * Format: int32
-             * @description 1회 이상 투자한 고유 투자자 수.
-             */
-            investedInvestorCount: number;
-            /**
-             * Format: int64
-             * @description 최초 로그인한 투자자에게 실제 지급한 금액 합계(원).
-             */
-            totalIssuedAmount: number;
-            /**
-             * Format: int64
-             * @description 확정 투자 금액 합계(원).
-             */
-            totalInvestedAmount: number;
-            /**
-             * Format: int64
-             * @description 지급받은 투자자의 남은 투자금 합계(원).
-             */
-            totalBalance: number;
-            /**
-             * Format: int32
-             * @description 지급 후 잔액이 0원인 투자자 수. 미지급자 제외.
-             */
-            completedCount: number;
-            /**
-             * Format: int32
-             * @description 지급 후 잔액이 남은 투자자 수.
-             */
-            unspentCount: number;
-        };
-        Overview: {
-            total: components["schemas"]["Metrics"];
-            participants: components["schemas"]["Metrics"];
-            staff: components["schemas"]["Metrics"];
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-            /**
-             * Format: int64
-             * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
-             */
-            snapshotVersion: number;
-            /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
-            investmentStatus: components["schemas"]["InvestmentStatus"];
-        };
-        InvestorList: {
-            items: components["schemas"]["Investor"][];
-            /**
-             * Format: int32
-             * @description 이 응답 목록의 전체 항목 수. 페이지네이션은 없습니다.
-             */
-            count: number;
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-        };
-        InvestorDetail: {
-            investor: components["schemas"]["Investor"];
-            investments: components["schemas"]["Investment"][];
-            /**
-             * Format: date-time
-             * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
-             */
-            asOf: string;
-        };
-        ApiError: {
-            error?: components["schemas"]["ErrorBody"];
-            /** @description 오류 보고용 HTTP 요청 추적 ID. X-Request-ID 헤더와 같습니다. */
-            requestId?: string;
-        };
+  schemas: {
+    LoginInput: {
+      /**
+       * @description ASCII 숫자 4자리 문자열. 재사용하는 사전 발급 코드이며 앞자리 0을 유지합니다. 숫자 타입은 400입니다.
+       * @example 0037
+       */
+      code: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /** @description 참가자 또는 운영팀 투자자. 관리자는 투자금 지급 대상이 아닙니다. */
+    Investor: {
+      /** @description 서버 내부 투자자 ID. 로그인 코드는 응답에 포함하지 않습니다. */
+      investorId: string;
+      /** @description 사전 등록한 투자자 이름. 관리자 화면에서 수정하지 않습니다. */
+      alias: string;
+      /**
+       * @description PARTICIPANT=참가자, STAFF=운영팀 투자자. 운영팀 투자자는 관리자 권한이 없습니다.
+       * @enum {string}
+       */
+      kind: "PARTICIPANT" | "STAFF";
+      /**
+       * Format: int32
+       * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
+       */
+      teamId?: number;
+      /**
+       * Format: int32
+       * @description 투자자 등록 시 지급한 100만원. 로그인으로 재지급하지 않습니다.
+       */
+      issuedAmount: number;
+      /**
+       * Format: int32
+       * @description 확정한 투자 금액 합계, 원 단위.
+       */
+      investedAmount: number;
+      /**
+       * Format: int32
+       * @description 현재 남은 투자금, 원 단위. 등록 직후 100만원입니다.
+       */
+      balance: number;
+      /**
+       * @description UNSPENT=잔액 남음, COMPLETED=전액 투자 완료. 로그인 여부와 무관합니다.
+       * @enum {string}
+       */
+      spendingStatus: "UNSPENT" | "COMPLETED";
+    };
+    InvestorSession: {
+      investor: components["schemas"]["Investor"];
+      /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
+      csrfToken: string;
+      /**
+       * Format: date-time
+       * @description 세션 만료 시각(UTC). 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
+       */
+      expiresAt: string;
+    };
+    InvestmentInput: {
+      /**
+       * Format: int32
+       * @description 투자 대상 팀 번호(1~20). 참가자는 소속팀에 투자할 수 없습니다.
+       */
+      teamId: number;
+      /**
+       * Format: int32
+       * @description 원 단위 정수. 10만~70만원, 10만원 단위.
+       */
+      amount: number;
+    };
+    Investment: {
+      /** @description 확정 거래 ID. 내 거래 상세 경로에서 사용합니다. */
+      investmentId: string;
+      /**
+       * Format: int32
+       * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
+       */
+      teamId: number;
+      /** @description 부스의 서비스 표시 이름. */
+      serviceName: string;
+      /**
+       * Format: int32
+       * @description 원 단위 정수. 10만~70만원, 10만원 단위.
+       */
+      amount: number;
+      /**
+       * Format: date-time
+       * @description 거래 확정 시각(UTC).
+       */
+      confirmedAt: string;
+    };
+    InvestmentReceipt: {
+      investment: components["schemas"]["Investment"];
+      /**
+       * Format: int32
+       * @description 해당 거래 확정 당시 잔액. 멱등 재전송도 같은 영수증을 반환합니다.
+       */
+      balanceAfterInvestment: number;
+      /**
+       * Format: int64
+       * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
+       */
+      snapshotVersion: number;
+    };
+    Admin: {
+      adminId: string;
+      role: string;
+    };
+    AdminSession: {
+      admin: components["schemas"]["Admin"];
+      /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
+      csrfToken: string;
+      /**
+       * Format: date-time
+       * @description 세션 만료 시각(UTC). 발급 후 48시간 고정이며 조회로 연장되지 않습니다.
+       */
+      expiresAt: string;
+    };
+    InvestmentStatusInput: {
+      /**
+       * @description 목표 상태 RUNNING 또는 PAUSED. 필수 문자열이며 알 수 없는 값·누락·null은 400 INVALID_REQUEST입니다. 같은 상태 재요청은 추가 변경이 없습니다.
+       * @enum {string}
+       */
+      status: "RUNNING" | "PAUSED";
+    };
+    /** @description 전체 투자 접수 상태. 중지해도 로그인·조회와 기존 영수증 복구는 가능합니다. */
+    InvestmentStatus: {
+      /**
+       * @description RUNNING=신규 투자 접수, PAUSED=신규 투자 중지. 로그인·조회는 계속 가능합니다.
+       * @enum {string}
+       */
+      status: "RUNNING" | "PAUSED";
+      /**
+       * Format: int64
+       * @description 실제 상태 변경 때만 증가하는 버전. 초기값 0이며 투자 snapshotVersion과 별개입니다.
+       */
+      revision: number;
+      /**
+       * Format: date-time
+       * @description 마지막 상태 변경 시각 UTC. 아직 변경하지 않았으면 null.
+       */
+      updatedAt?: string;
+    };
+    Dashboard: {
+      /**
+       * Format: int64
+       * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
+       */
+      snapshotVersion: number;
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+      /**
+       * Format: int64
+       * @description 확정 투자 금액 합계(원).
+       */
+      totalInvestedAmount: number;
+      /**
+       * Format: int32
+       * @description 1회 이상 투자한 고유 투자자 수.
+       */
+      investedInvestorCount: number;
+      teams: components["schemas"]["RankingRow"][];
+    };
+    RankingRow: {
+      /**
+       * Format: int32
+       * @description 경쟁 순위 1·1·3. 화면 배열 인덱스로 순위를 계산하지 마세요.
+       */
+      rank: number;
+      /**
+       * Format: int32
+       * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
+       */
+      teamId: number;
+      /** @description 부스의 서비스 표시 이름. */
+      serviceName: string;
+      /**
+       * Format: int64
+       * @description 이 팀에 확정된 전체 투자액 합계(원).
+       */
+      raisedAmount: number;
+    };
+    Team: {
+      /**
+       * Format: int32
+       * @description 참가자 소속 또는 투자 대상 팀 번호. 운영팀 투자자의 소속은 null입니다.
+       */
+      teamId: number;
+      /** @description 부스의 서비스 표시 이름. */
+      serviceName: string;
+      /** @description 부스의 서비스 소개. */
+      description: string;
+      /**
+       * @description SELF_TEAM → ALREADY_INVESTED → BALANCE_EXHAUSTED → AVAILABLE 우선순위.
+       * @enum {string}
+       */
+      investmentState:
+        | "SELF_TEAM"
+        | "ALREADY_INVESTED"
+        | "BALANCE_EXHAUSTED"
+        | "AVAILABLE";
+      /**
+       * Format: int32
+       * @description 이 투자자가 이 팀에 확정한 투자액. 아직 투자하지 않았으면 0.
+       */
+      myInvestmentAmount: number;
+      /** @description 현재 잔액 이하의 선택 가능 금액. 화면은 7개 버튼을 모두 표시하고 나머지는 비활성화합니다. */
+      allowedAmounts: number[];
+    };
+    TeamList: {
+      investor: components["schemas"]["Investor"];
+      teams: components["schemas"]["Team"][];
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+      /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
+      investmentStatus: components["schemas"]["InvestmentStatus"];
+    };
+    TeamDetail: {
+      investor: components["schemas"]["Investor"];
+      team: components["schemas"]["Team"];
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+      /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
+      investmentStatus: components["schemas"]["InvestmentStatus"];
+    };
+    InvestmentHistory: {
+      investor: components["schemas"]["Investor"];
+      items: components["schemas"]["Investment"][];
+      /**
+       * Format: int32
+       * @description 이 응답 목록의 전체 항목 수. 페이지네이션은 없습니다.
+       */
+      count: number;
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+    };
+    InvestmentDetail: {
+      investment: components["schemas"]["Investment"];
+      /**
+       * Format: int32
+       * @description 과거 거래 당시가 아닌 조회 시점의 현재 잔액.
+       */
+      currentBalance: number;
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+    };
+    ErrorBody: {
+      code: string;
+      /** @description 화면 표시용 오류 안내. 분기 처리는 message가 아닌 code로 하세요. */
+      message: string;
+      /** @description 추가 오류 정보. 입력 오류는 fieldErrors 배열을 포함할 수 있습니다. */
+      details: {
+        [key: string]: unknown;
+      };
+    };
+    RequestResult: {
+      /**
+       * @description SUCCEEDED=투자 확정 성공, REJECTED=투자 거절 확정. 조회 자체의 HTTP 상태는 둘 다 200.
+       * @enum {string}
+       */
+      status: "SUCCEEDED" | "REJECTED";
+      requestKey: string;
+      result?: components["schemas"]["InvestmentReceipt"];
+      /**
+       * Format: int32
+       * @description 저장된 투자 거절의 HTTP 상태. 이 결과 조회 자체는 HTTP 200입니다.
+       */
+      originalHttpStatus?: number;
+      error?: components["schemas"]["ErrorBody"];
+    };
+    Csrf: {
+      /** @description 이 역할의 쓰기 요청 X-CSRF-Token 헤더 값. 로그인 성공 후 새 값으로 교체합니다. */
+      csrfToken: string;
+    };
+    Metrics: {
+      /**
+       * Format: int32
+       * @description 사전 등록한 전체 투자자 수. 미로그인자 포함, 관리자 제외.
+       */
+      registeredInvestorCount: number;
+      /**
+       * Format: int32
+       * @description 1회 이상 투자한 고유 투자자 수.
+       */
+      investedInvestorCount: number;
+      /**
+       * Format: int64
+       * @description 등록한 투자자에게 지급한 금액 합계(원). 로그인 여부와 무관합니다.
+       */
+      totalIssuedAmount: number;
+      /**
+       * Format: int64
+       * @description 확정 투자 금액 합계(원).
+       */
+      totalInvestedAmount: number;
+      /**
+       * Format: int64
+       * @description 지급받은 투자자의 남은 투자금 합계(원).
+       */
+      totalBalance: number;
+      /**
+       * Format: int32
+       * @description 잔액이 0원인 투자자 수.
+       */
+      completedCount: number;
+      /**
+       * Format: int32
+       * @description 지급 후 잔액이 남은 투자자 수.
+       */
+      unspentCount: number;
+    };
+    Overview: {
+      total: components["schemas"]["Metrics"];
+      participants: components["schemas"]["Metrics"];
+      staff: components["schemas"]["Metrics"];
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+      /**
+       * Format: int64
+       * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
+       */
+      snapshotVersion: number;
+      /** @description 전체 투자 접수 상태. PAUSED이면 팀별 상태가 AVAILABLE이어도 투자 버튼을 차단합니다. */
+      investmentStatus: components["schemas"]["InvestmentStatus"];
+    };
+    InvestorList: {
+      items: components["schemas"]["Investor"][];
+      /**
+       * Format: int32
+       * @description 이 응답 목록의 전체 항목 수. 페이지네이션은 없습니다.
+       */
+      count: number;
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+    };
+    InvestorDetail: {
+      investor: components["schemas"]["Investor"];
+      investments: components["schemas"]["Investment"][];
+      /**
+       * Format: date-time
+       * @description 응답 데이터의 조회 기준 시각 UTC. 화면에서 한국 시간으로 표시합니다.
+       */
+      asOf: string;
+    };
+    InvestorRanking: {
+      /**
+       * Format: int32
+       * @description 선택 그룹 내 전액 투자자 순위(1·1·3). 미소진자는 필드를 생략하지 않고 null로 반환해요.
+       */
+      rank: number | null;
+      /** @description 서버 내부 투자자 ID. 로그인 코드는 응답에 포함하지 않습니다. */
+      investorId: string;
+      /** @description 사전 등록한 투자자 이름. 관리자 화면에서 수정하지 않습니다. */
+      alias: string;
+      /**
+       * @description PARTICIPANT=참가자, STAFF=운영팀 투자자. 운영팀 투자자는 관리자 권한이 없습니다.
+       * @enum {string}
+       */
+      kind: "PARTICIPANT" | "STAFF";
+      /**
+       * Format: int32
+       * @description 투자자의 소속 팀 번호. 운영팀 투자자는 null이에요.
+       */
+      teamId: number | null;
+      /**
+       * Format: int32
+       * @description 현재 팀 배점으로 계산한 개인 총점. 음수도 가능하며 실제 돈이나 잔액이 아니에요.
+       */
+      score: number;
+      /** @description 팀별 점수 계산 근거. 팀 번호 오름차순이며 투자 내역이 없으면 빈 배열이에요. */
+      contributions: components["schemas"]["ScoreContribution"][];
+    };
+    InvestorRankings: {
+      /** @enum {string} */
+      group: "ALL" | "PARTICIPANT" | "STAFF";
+      /**
+       * Format: date-time
+       * @description 읽기 스냅샷을 확보한 기준 시각 UTC. 같은 응답의 팀·개인 점수는 같은 스냅샷에서 계산해요.
+       */
+      asOf: string;
+      /**
+       * Format: int64
+       * @description 투자 커밋마다 증가하는 버전. 조회 시각과 구분합니다.
+       */
+      snapshotVersion: number;
+      /**
+       * Format: int32
+       * @description 이 응답 목록의 전체 항목 수. 페이지네이션은 없습니다.
+       */
+      count: number;
+      items: components["schemas"]["InvestorRanking"][];
+    };
+    ScoreContribution: {
+      /**
+       * Format: int32
+       * @description 실제 투자한 대상 팀 번호. 투자자의 소속 팀과 달라요.
+       */
+      teamId: number;
+      /** @description 부스의 서비스 표시 이름. */
+      serviceName: string;
+      /**
+       * Format: int32
+       * @description 전체 투자 유치액 기준 팀 경쟁 순위(1·1·3). 0원 팀은 이 계산에서 공동 20등이에요.
+       */
+      teamRank: number;
+      /**
+       * Format: int32
+       * @description 해당 투자자가 이 팀에 투자한 금액(원).
+       */
+      investedAmount: number;
+      /**
+       * Format: int32
+       * @description 투자금 10만원당 배점. 1~10등은 11-rank, 11~20등은 10-rank예요.
+       */
+      pointsPerUnit: number;
+      /**
+       * Format: int32
+       * @description (investedAmount / 100000) × pointsPerUnit.
+       */
+      score: number;
+    };
+    ApiError: {
+      error?: components["schemas"]["ErrorBody"];
+      /** @description 오류 보고용 HTTP 요청 추적 ID. X-Request-ID 헤더와 같습니다. */
+      requestId?: string;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    investorSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestorSession"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  investorSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    investorLogin: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginInput"];
-            };
+        content: {
+          "application/json": components["schemas"]["InvestorSession"];
         };
-        responses: {
-            /** @description 투자자 로그인 성공. 최초 로그인에만 100만원 지급. 세션 쿠키 발급 및 CSRF 토큰 교체. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestorSession"];
-                };
-            };
-            /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/alias/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **AUTHENTICATION_FAILED** — 코드가 이 로그인 역할의 활성 계정과 일치하지 않음. 존재·비활성 여부를 구분해서 노출하지 않음. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 code가 문자열로 파싱되었으나 ASCII 숫자 4자리 패턴이 아님. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    investorLogout: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 로그아웃 성공 · 본문 없음 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description **INVALID_REQUEST** — DELETE 요청에 본문이 있음(Content-Length > 0 OR Transfer-Encoding 헤더 존재). CSRF보다 먼저 검사합니다. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  investorLogin: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    listMyInvestments: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 목록 조회 성공. 일치 항목이 없으면 빈 배열과 count=0. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestmentHistory"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginInput"];
+      };
     };
-    createInvestment: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 논리적 투자마다 UUID v4. 재전송은 같은 값을 사용합니다. */
-                "Idempotency-Key": string;
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description 투자자 로그인 성공. 등록 시 지급된 잔액 유지. 세션 쿠키 발급 및 CSRF 토큰 교체. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InvestmentInput"];
-            };
+        content: {
+          "application/json": components["schemas"]["InvestorSession"];
         };
-        responses: {
-            /** @description 투자 확정 또는 같은 키·본문의 기존 성공 영수증 복구. 추가 차감 없음. */
-            201: {
-                headers: {
-                    /** @description 확정 거래 상세 API 경로. */
-                    Location?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestmentReceipt"];
-                };
-            };
-            /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/alias/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /**
-             * @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임.
-             *
-             *     **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료.
-             *
-             *     **SELF_INVESTMENT_FORBIDDEN** — 새 요청 키 AND 투자 상태 RUNNING AND kind=PARTICIPANT AND 본인 teamId=요청 teamId. 동일 키·본문의 이전 거절이면 그 거절을 그대로 재현.
-             */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RESOURCE_NOT_FOUND** — 새 요청 키 AND 투자 상태 RUNNING AND 대상 팀이 DB에 없음(정상 초기화는 20개 팀을 모두 등록). */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /**
-             * @description **IDEMPOTENCY_KEY_REUSED** — 동일 투자자·요청 키의 기록 존재 AND teamId 또는 amount가 원 요청과 다름.
-             *
-             *     **INVESTMENT_PAUSED** — 동일 키의 기존 결과가 없음 AND 투자 접수 상태가 PAUSED. 요청 키를 소비하지 않으며 재개 후 같은 키·본문 재전송 가능.
-             *
-             *     **ALREADY_INVESTED** — 새 요청 키 AND 투자 상태 RUNNING AND 자기 팀 검증 통과 AND 동일 투자자·팀의 확정 거래 존재. 이전 동일 키·본문의 거절도 재현.
-             *
-             *     **INSUFFICIENT_BALANCE** — 새 요청 키 AND 투자 상태 RUNNING AND 자기 팀·기투자 검증 통과 AND amount > 트랜잭션 시점의 잔액. 이전 동일 키·본문의 거절도 재현.
-             */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 Idempotency-Key 누락/UUID v4 아님 OR teamId가 1~20 밖 OR amount가 100000~700000 밖 OR amount % 100000 != 0. teamId/amount 누락 또는 null은 현재 바인더에서 0으로 처리되어 범위 검증 422를 반환. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+      };
+      /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
+      400: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **AUTHENTICATION_FAILED** — 코드가 이 로그인 역할의 활성 계정과 일치하지 않음. 존재·비활성 여부를 구분해서 노출하지 않음. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 code가 문자열로 파싱되었으나 ASCII 숫자 4자리 패턴이 아님. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    adminSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminSession"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  investorLogout: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    adminLogin: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 로그아웃 성공 · 본문 없음 */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginInput"];
-            };
+        content?: never;
+      };
+      /** @description **INVALID_REQUEST** — DELETE 요청에 본문이 있음(Content-Length > 0 OR Transfer-Encoding 헤더 존재). CSRF보다 먼저 검사합니다. */
+      400: {
+        headers: {
+          [name: string]: unknown;
         };
-        responses: {
-            /** @description 관리자 로그인 성공. 세션 쿠키 발급 및 CSRF 토큰 교체. 투자금 지급 없음. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminSession"];
-                };
-            };
-            /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/alias/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **AUTHENTICATION_FAILED** — 코드가 이 로그인 역할의 활성 계정과 일치하지 않음. 존재·비활성 여부를 구분해서 노출하지 않음. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 code가 문자열로 파싱되었으나 ASCII 숫자 4자리 패턴이 아님. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
         };
+      };
+      /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    adminLogout: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 로그아웃 성공 · 본문 없음 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description **INVALID_REQUEST** — DELETE 요청에 본문이 있음(Content-Length > 0 OR Transfer-Encoding 헤더 존재). CSRF보다 먼저 검사합니다. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  listMyInvestments: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getInvestorDetail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 투자자 목록에서 받은 내부 ID. 로그인 코드가 아닙니다. */
-                investorId: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 목록 조회 성공. 일치 항목이 없으면 빈 배열과 count=0. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestorDetail"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RESOURCE_NOT_FOUND** — investorId에 해당하는 활성 투자자가 없음. 비활성 투자자·관리자 ID 포함. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["InvestmentHistory"];
         };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    updateInvestorAlias: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path: {
-                /** @description 투자자 목록에서 받은 내부 ID. 로그인 코드가 아닙니다. */
-                investorId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AliasInput"];
-            };
-        };
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Investor"];
-                };
-            };
-            /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/alias/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /**
-             * @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임.
-             *
-             *     **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료.
-             */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RESOURCE_NOT_FOUND** — investorId에 해당하는 활성 투자자가 없음. 비활성 투자자·관리자 ID 포함. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 alias 길이가 1~40 밖 OR 앞뒤 공백 OR CR/LF 포함. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  createInvestment: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 논리적 투자마다 UUID v4. 재전송은 같은 값을 사용합니다. */
+        "Idempotency-Key": string;
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    updateInvestmentStatus: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
-                "X-CSRF-Token": unknown;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InvestmentStatusInput"];
-            };
-        };
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestmentStatus"];
-                };
-            };
-            /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체가 아님 OR status 누락/null/문자열 아님 OR status가 RUNNING·PAUSED 중 하나가 아님(대소문자 구분) OR 미정의 본문 필드 OR 지원하지 않는 Content-Type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /**
-             * @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임.
-             *
-             *     **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료.
-             */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InvestmentInput"];
+      };
     };
-    getInvestmentStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description 투자 확정 또는 같은 키·본문의 기존 성공 영수증 복구. 추가 차감 없음. */
+      201: {
+        headers: {
+          /** @description 확정 거래 상세 API 경로. */
+          Location?: unknown;
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestmentStatus"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["InvestmentReceipt"];
         };
+      };
+      /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /**
+       * @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임.
+       *
+       *     **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료.
+       *
+       *     **SELF_INVESTMENT_FORBIDDEN** — 새 요청 키 AND 투자 상태 RUNNING AND kind=PARTICIPANT AND 본인 teamId=요청 teamId. 동일 키·본문의 이전 거절이면 그 거절을 그대로 재현.
+       */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RESOURCE_NOT_FOUND** — 새 요청 키 AND 투자 상태 RUNNING AND 대상 팀이 DB에 없음(정상 초기화는 20개 팀을 모두 등록). */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /**
+       * @description **IDEMPOTENCY_KEY_REUSED** — 동일 투자자·요청 키의 기록 존재 AND teamId 또는 amount가 원 요청과 다름.
+       *
+       *     **INVESTMENT_PAUSED** — 동일 키의 기존 결과가 없음 AND 투자 접수 상태가 PAUSED. 요청 키를 소비하지 않으며 재개 후 같은 키·본문 재전송 가능.
+       *
+       *     **ALREADY_INVESTED** — 새 요청 키 AND 투자 상태 RUNNING AND 자기 팀 검증 통과 AND 동일 투자자·팀의 확정 거래 존재. 이전 동일 키·본문의 거절도 재현.
+       *
+       *     **INSUFFICIENT_BALANCE** — 새 요청 키 AND 투자 상태 RUNNING AND 자기 팀·기투자 검증 통과 AND amount > 트랜잭션 시점의 잔액. 이전 동일 키·본문의 거절도 재현.
+       */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 Idempotency-Key 누락/UUID v4 아님 OR teamId가 1~20 밖 OR amount가 100000~700000 밖 OR amount % 100000 != 0. teamId/amount 누락 또는 null은 현재 바인더에서 0으로 처리되어 범위 검증 422를 반환. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    getDashboard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Dashboard"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  adminSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    listTeams: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamList"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["AdminSession"];
         };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    getTeam: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 부스 목록에서 받은 정수 팀 번호. 존재하지 않는 번호는 404. */
-                teamId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamDetail"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RESOURCE_NOT_FOUND** — 정수로 변환된 teamId에 해당하는 팀이 없음. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 teamId 경로값을 Int로 변환할 수 없음. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  adminLogin: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    getMyInvestor: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Investor"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginInput"];
+      };
     };
-    getMyInvestment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 내 영수증 또는 거래 목록에서 받은 거래 ID. 타인 거래도 404입니다. */
-                investmentId: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description 관리자 로그인 성공. 세션 쿠키 발급 및 CSRF 토큰 교체. 투자금 지급 없음. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestmentDetail"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RESOURCE_NOT_FOUND** — investmentId에 해당하는 현재 투자자 소유 거래가 없음. 없는 ID와 타인 거래를 구분하지 않습니다. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["AdminSession"];
         };
+      };
+      /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체로 파싱할 수 없음 OR 필수 문자열 필드(code/status) 누락/null OR 미정의 본문 필드 존재 OR 필드 타입 불일치 OR 지원하지 않는 Content-Type. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **AUTHENTICATION_FAILED** — 코드가 이 로그인 역할의 활성 계정과 일치하지 않음. 존재·비활성 여부를 구분해서 노출하지 않음. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 code가 문자열로 파싱되었으나 ASCII 숫자 4자리 패턴이 아님. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    getInvestmentRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 논리적 투자마다 UUID v4. 재전송은 같은 값을 사용합니다. */
-                requestKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 요청 결과 조회 성공. SUCCEEDED와 REJECTED 모두 HTTP 200이며 본문의 status로 구분. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RequestResult"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **REQUEST_RESULT_NOT_FOUND** — 현재 투자자 + requestKey로 커밋된 결과가 없음. 미도착·미커밋·다른 투자자의 키 포함. 같은 키·본문으로 재전송하며 실패 확정으로 처리하지 않습니다. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 requestKey가 UUID v4가 아님. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  adminLogout: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    investorCsrf: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 로그아웃 성공 · 본문 없음 */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Csrf"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content?: never;
+      };
+      /** @description **INVALID_REQUEST** — DELETE 요청에 본문이 있음(Content-Length > 0 OR Transfer-Encoding 헤더 존재). CSRF보다 먼저 검사합니다. */
+      400: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
-    getOverview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Overview"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+  };
+  updateInvestmentStatus: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description 같은 역할의 로그인 또는 로그인 준비 API에서 받은 csrfToken */
+        "X-CSRF-Token": unknown;
+      };
+      path?: never;
+      cookie?: never;
     };
-    listInvestors: {
-        parameters: {
-            query?: {
-                /** @description 선택. 별칭 또는 내부 투자자 ID 부분 검색, 대소문자 무시, 최대 100자. 생략 또는 빈 문자열이면 검색 제한 없음. */
-                q?: string;
-                /** @description 선택. 참가자 소속팀 번호 1~20. STAFF는 소속팀이 없어 이 필터와 일치하지 않습니다. */
-                teamId?: number;
-                /** @description 생략하면 전체. 전달한 값이 허용값이 아니면 422. */
-                kind?: "PARTICIPANT" | "STAFF";
-                /** @description 미지급·미소진·완료를 구분합니다. 생략하면 전체. */
-                spendingStatus?: "NOT_ACTIVATED" | "UNSPENT" | "COMPLETED";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 목록 조회 성공. 일치 항목이 없으면 빈 배열과 count=0. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvestorList"];
-                };
-            };
-            /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 미정의 쿼리 키 존재 OR 동일 쿼리 키가 2번 이상 전달됨 OR q 길이 > 100 OR teamId가 정수 1~20이 아님 OR kind가 전달됨 AND PARTICIPANT/STAFF가 아님 OR spendingStatus가 전달됨 AND NOT_ACTIVATED/UNSPENT/COMPLETED가 아님. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
-            429: {
-                headers: {
-                    /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InvestmentStatusInput"];
+      };
     };
-    adminCsrf: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Csrf"];
-                };
-            };
-            /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
-            503: {
-                headers: {
-                    /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
-                    "Retry-After"?: unknown;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["InvestmentStatus"];
         };
+      };
+      /** @description **INVALID_REQUEST** — 본문이 없거나 JSON 객체가 아님 OR status 누락/null/문자열 아님 OR status가 RUNNING·PAUSED 중 하나가 아님(대소문자 구분) OR 미정의 본문 필드 OR 지원하지 않는 Content-Type. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /**
+       * @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임.
+       *
+       *     **CSRF_INVALID** — Origin이 설정된 웹 출처와 다름/누락 OR X-CSRF-Token이 현재 역할의 세션·로그인 준비 컨텍스트와 다름/누락/만료.
+       */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_BODY_TOO_LARGE** — POST·PATCH·DELETE의 Content-Length가 1,048,576바이트를 초과함 OR 길이가 없는 본문을 실제로 읽은 크기가 1,048,576바이트를 초과함. 인증·CSRF 검사 전에 거절해요. */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
     };
+  };
+  getInvestmentStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvestmentStatus"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getDashboard: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Dashboard"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  listTeams: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TeamList"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getTeam: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 부스 목록에서 받은 정수 팀 번호. 존재하지 않는 번호는 404. */
+        teamId: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TeamDetail"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RESOURCE_NOT_FOUND** — 정수로 변환된 teamId에 해당하는 팀이 없음. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 teamId 경로값을 Int로 변환할 수 없음. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getMyInvestor: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Investor"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getMyInvestment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 내 영수증 또는 거래 목록에서 받은 거래 ID. 타인 거래도 404입니다. */
+        investmentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvestmentDetail"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RESOURCE_NOT_FOUND** — investmentId에 해당하는 현재 투자자 소유 거래가 없음. 없는 ID와 타인 거래를 구분하지 않습니다. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getInvestmentRequest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 논리적 투자마다 UUID v4. 재전송은 같은 값을 사용합니다. */
+        requestKey: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 요청 결과 조회 성공. SUCCEEDED와 REJECTED 모두 HTTP 200이며 본문의 status로 구분. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestResult"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **REQUEST_RESULT_NOT_FOUND** — 현재 투자자 + requestKey로 커밋된 결과가 없음. 미도착·미커밋·다른 투자자의 키 포함. 같은 키·본문으로 재전송하며 실패 확정으로 처리하지 않습니다. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). 또는 requestKey가 UUID v4가 아님. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  investorCsrf: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Csrf"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getOverview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Overview"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  listInvestors: {
+    parameters: {
+      query?: {
+        /** @description 선택. 이름 또는 내부 투자자 ID 부분 검색, 대소문자 무시, 최대 100자. 생략 또는 빈 문자열이면 검색 제한 없음. */
+        q?: string;
+        /** @description 선택. 참가자 소속팀 번호 1~20. STAFF는 소속팀이 없어 이 필터와 일치하지 않습니다. */
+        teamId?: number;
+        /** @description 생략하면 전체. 전달한 값이 허용값이 아니면 422. */
+        kind?: "PARTICIPANT" | "STAFF";
+        /** @description 미소진·소진 완료를 구분합니다. 생략하면 전체. */
+        spendingStatus?: "UNSPENT" | "COMPLETED";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 목록 조회 성공. 일치 항목이 없으면 빈 배열과 count=0. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvestorList"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 미정의 쿼리 키 존재 OR 동일 쿼리 키가 2번 이상 전달됨 OR q 길이 > 100 OR teamId가 정수 1~20이 아님 OR kind가 전달됨 AND PARTICIPANT/STAFF가 아님 OR spendingStatus가 전달됨 AND UNSPENT/COMPLETED가 아님. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getInvestorDetail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description 투자자 목록에서 받은 내부 ID. 로그인 코드가 아닙니다. */
+        investorId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvestorDetail"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RESOURCE_NOT_FOUND** — investorId에 해당하는 활성 투자자가 없음. 비활성 투자자·관리자 ID 포함. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getInvestorRankings: {
+    parameters: {
+      query?: {
+        /** @description 선택. 생략=ALL(전체), PARTICIPANT=참가자, STAFF=운영팀 투자자. 출력 대상과 개인 순위에만 적용하며 팀 배점과 개인 점수는 전체 투자 기준이에요. 빈 값·중복·대소문자 불일치는 422예요. */
+        group?: "ALL" | "PARTICIPANT" | "STAFF";
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 현재 성과 계산 성공. 미소진자는 rank=null, 투자 내역이 없으면 score=0/contributions=[]. 대상이 없으면 items=[], count=0. 잔액은 반환하지 않아요. */
+      200: {
+        headers: {
+          /** @description no-store. 결과를 저장하지 않고 조회마다 다시 계산해요. */
+          "Cache-Control"?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InvestorRankings"];
+        };
+      };
+      /** @description **SESSION_EXPIRED** — 이 API의 역할 세션이 유효하지 않음 AND (해당 역할 쿠키가 있거나 반대 역할의 유효 세션도 없음). 로그인 화면으로 이동. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **FORBIDDEN** — 필요한 세션 쿠키 없음 AND 반대 역할로만 로그인함, 또는 요구 역할의 계정이 비활성 상태임. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — group 외 쿼리 키 존재 OR 동일 키가 2번 이상 전달됨 OR group이 전달됨 AND ALL/PARTICIPANT/STAFF 중 어느 값과도 정확히 일치하지 않음(빈 값·공백·소문자 포함). group 생략은 ALL로 정상 처리. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **RATE_LIMITED** — 직전 60초 내 통과 요청이 보호 API는 역할+계정당 180회, 공개 API는 서버 연결 주소당 30,000회 이상. 운영 WAF는 클라이언트 IP당 60초 동안 30,000건을 초과하면 60초 제한. 로그인·CSRF 준비에는 이 서버 제한을 적용하지 않음. */
+      429: {
+        headers: {
+          /** @description 재시도까지 기다릴 초 수(정수). 이 시간이 지난 뒤 재호출하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 성과 계산 중 저장소 예외 외 예상하지 못한 실행 예외 발생. 잘못된 0점이나 빈 목록으로 대체하지 않아요. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — 성과 계산을 위한 DB 읽기 중 저장소 접근 예외 발생. HTTP 503과 Retry-After: 5를 반환하며 빈 목록으로 대체하지 않아요. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  adminCsrf: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 조회 또는 변경 성공. 아래 Schema에서 필드별 의미를 확인하세요. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Csrf"];
+        };
+      };
+      /** @description **VALIDATION_FAILED** — 쿼리 파라미터가 하나라도 전달됨(이 API는 쿼리를 받지 않음). */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **INTERNAL_ERROR** — 다른 정의된 오류로 분류되지 않는 실행 예외. 투자 성공 여부는 동일 키로 다시 확인. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description **SERVICE_UNAVAILABLE** — SQLite 등 필수 저장소 접근 실패. 투자 성공 여부는 동일 키로 다시 확인. */
+      503: {
+        headers: {
+          /** @description 현재 구현은 5초. 투자 결과가 불확실하면 같은 요청 키로 확인하세요. */
+          "Retry-After"?: unknown;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
 }
