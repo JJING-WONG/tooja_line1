@@ -61,7 +61,7 @@ export default function InvestorSummary({ investor }: { investor: Investor }) {
       {investor.kind === "PARTICIPANT" &&
         investor.spendingStatus !== "COMPLETED" && (
           <div className="rounded-lg bg-[#fff8e6] px-3.5 py-3 text-[12px] leading-4.25 text-[#7a5b00]">
-            <p>지급된 100만원을 모두 투자해 주세요.</p>
+            <p>등록 시 지급된 100만원을 모두 투자해 주세요.</p>
             <p>미소진 시 운영 기준에 따라 심사 감점이 적용됩니다.</p>
           </div>
         )}

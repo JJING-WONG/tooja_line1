@@ -71,8 +71,8 @@ export default function InvestorListPage() {
       >
         <input
           type="search"
-          aria-label="별칭 또는 ID 검색"
-          placeholder="별칭 · ID 검색"
+          aria-label="이름 또는 ID 검색"
+          placeholder="이름 · ID 검색"
           value={query}
           onChange={(event) => updateFilter("q", event.target.value)}
           maxLength={100}
@@ -172,7 +172,7 @@ export default function InvestorListPage() {
           </colgroup>
           <thead className="bg-[#ededed] text-[#444]">
             <tr>
-              {["별칭", "역할", "팀", "지급액", "투자액", "잔액", "상태"].map(
+              {["이름", "역할", "팀", "지급액", "투자액", "잔액", "상태"].map(
                 (label) => (
                   <th
                     key={label}
