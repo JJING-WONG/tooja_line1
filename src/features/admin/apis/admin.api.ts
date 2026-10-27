@@ -14,7 +14,7 @@ type InvestorDetail = components["schemas"]["InvestorDetail"];
  * 요청: 관리자 세션 쿠키로 인증. 본문·쿼리·CSRF 헤더 없음.
  * 응답: 200, Overview — { total, participants, staff, asOf, snapshotVersion, investmentStatus }.
  * total은 전체, participants·staff는 참가자·운영팀 투자자 집계이며 관리자는 제외합니다.
- * 미로그인·미지급자는 등록 수에 포함되지만 소진·미소진 수에는 포함되지 않습니다.
+ * 등록 시 투자금이 지급되며 로그인 여부와 관계없이 등록·소진·미소진 집계에 포함됩니다.
  * asOf는 조회 시각(UTC), snapshotVersion은 투자 커밋 버전으로 서로 구분합니다.
  * investmentStatus도 포함되므로 A02에서 접수 상태를 별도 조회할 필요는 없습니다.
  * HTTP 오류는 호출부에 전달하며, signal은 조회 취소용입니다. 15초 제한으로 조회 지연을 오류 UI에 전달합니다.
@@ -60,7 +60,7 @@ export const updateInvestmentStatus = async (
  * A02의 미소진 투자자 보기에서 이동하면 spendingStatus: "UNSPENT"로 조회합니다.
  * 요청: 관리자 세션 쿠키로 인증. 본문·CSRF 헤더 없음.
  * 선택 쿼리: q(별칭·내부 ID 부분 검색, 최대 100자), teamId(1~20),
- * kind(PARTICIPANT·STAFF), spendingStatus(NOT_ACTIVATED·UNSPENT·COMPLETED).
+ * kind(PARTICIPANT·STAFF), spendingStatus(UNSPENT·COMPLETED).
  * 전체 선택은 해당 필터를 생략합니다. UI의 ALL·빈 선택값을 서버로 보내지 않습니다.
  * 여러 필터는 AND 조건이며 STAFF와 teamId를 함께 지정하면 빈 목록입니다.
  * 응답: 200, InvestorList — { items: Investor[], count, asOf }.
@@ -94,7 +94,7 @@ export const getAdminInvestors = async (
  * 응답: 200, InvestorDetail — { investor, investments, asOf }.
  * investor에는 별칭·역할·소속·지급액·투자액·잔액·소진 상태가 포함됩니다.
  * investments는 확정 거래의 최신순 목록이며, 확정 시각과 asOf는 UTC입니다.
- * 미로그인자는 지급액·잔액이 0원, 상태는 NOT_ACTIVATED, 거래는 빈 배열입니다.
+ * 등록 직후 지급액·잔액은 100만원이며, 투자 전 상태는 UNSPENT이고 거래는 빈 배열입니다.
  * 운영팀 투자자도 조회 가능하며, 잔액만으로 소진 상태를 판단하지 않습니다.
  * 없는 투자자·비활성 투자자·관리자 ID는 모두 404 RESOURCE_NOT_FOUND입니다.
  * HTTP 오류는 호출부에 전달하며, signal은 조회 취소용입니다.

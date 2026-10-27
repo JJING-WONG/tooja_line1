@@ -17,7 +17,7 @@ export function parseInvestorFilters(search: URLSearchParams): InvestorFilters {
     q: q || undefined,
     teamId,
     kind: kind === "PARTICIPANT" || kind === "STAFF" ? kind : undefined,
-    spendingStatus: spending === "ALL" ? undefined : spending === "NOT_ACTIVATED" || spending === "COMPLETED" || spending === "UNSPENT" ? spending : "UNSPENT",
+    spendingStatus: spending === "ALL" ? undefined : spending === "COMPLETED" || spending === "UNSPENT" ? spending : "UNSPENT",
   };
 }
 

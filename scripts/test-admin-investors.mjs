@@ -16,8 +16,8 @@ try {
   const session = { admin: { adminId, role: "ADMIN" }, csrfToken: "admin-token" };
   const filters = parseInvestorFilters(new URLSearchParams("spendingStatus=ALL"));
   const key = adminInvestorsQueryKey(adminId, filters);
-  const base = { alias: "서버 참가자", investorId: "inv/01", kind: "PARTICIPANT", teamId: 5, issuedAmount: 1000000, investedAmount: 300000, balance: 700000, spendingStatus: "UNSPENT", hasLoggedIn: true };
-  const data = { items: [base, { ...base, investorId: "staff-02", alias: "서버 운영팀", kind: "STAFF", teamId: undefined, investedAmount: 1000000, balance: 0, spendingStatus: "COMPLETED" }, { ...base, investorId: "unpaid-03", alias: "서버 미지급", issuedAmount: 0, investedAmount: 0, balance: 0, spendingStatus: "NOT_ACTIVATED", hasLoggedIn: false }], count: 3, asOf: "2026-10-25T00:00:00Z" };
+  const base = { alias: "서버 참가자", investorId: "inv/01", kind: "PARTICIPANT", teamId: 5, issuedAmount: 1000000, investedAmount: 300000, balance: 700000, spendingStatus: "UNSPENT" };
+  const data = { items: [base, { ...base, investorId: "staff-02", alias: "서버 운영팀", kind: "STAFF", teamId: undefined, investedAmount: 1000000, balance: 0, spendingStatus: "COMPLETED" }, { ...base, investorId: "uninvested-03", alias: "서버 투자 전", investedAmount: 0, balance: 1000000, spendingStatus: "UNSPENT" }], count: 3, asOf: "2026-10-25T00:00:00Z" };
   function client() { const c = new QueryClient(); clients.push(c); c.setQueryData(sessionKey, session); return c; }
   function wrap(c, element, path = "/admin/investors?spendingStatus=ALL", restoring = true) { return renderToStaticMarkup(React.createElement(QueryClientProvider, { client: c }, React.createElement(IsRestoringProvider, { value: restoring }, React.createElement(MemoryRouter, { initialEntries: [path] }, element)))); }
   function capture(c, params = filters, enabled = true) { function Harness() { useAdminInvestors(params, enabled); return null; } wrap(c, React.createElement(Harness)); return c.getQueryCache().find({ queryKey: adminInvestorsQueryKey(adminId, params) }).options; }
@@ -29,12 +29,13 @@ try {
   assert.deepEqual(combined, { q: "팀 03", teamId: 3, kind: "PARTICIPANT", spendingStatus: "COMPLETED" });
   const invalid = parseInvestorFilters(new URLSearchParams("teamId=999&kind=ADMIN&spendingStatus=WRONG")); assert.equal(invalid.teamId, undefined); assert.equal(invalid.kind, undefined); assert.equal(invalid.spendingStatus, "UNSPENT");
   assert.equal(parseInvestorFilters(new URLSearchParams({ q: "a".repeat(120) })).q.length, 100);
-  assert.equal(parseInvestorFilters(new URLSearchParams("spendingStatus=NOT_ACTIVATED")).spendingStatus, "NOT_ACTIVATED");
+  assert.equal(parseInvestorFilters(new URLSearchParams("spendingStatus=NOT_ACTIVATED")).spendingStatus, "UNSPENT");
 
   const c = client(); c.setQueryData(key, data); const html = render(c);
-  for (const text of ["검색 결과 3명", "서버 참가자", "서버 운영팀", "서버 미지급", "300,000", "700,000", "소진 완료", "미지급", "미소진", "/admin/investors/inv%2F01"]) assert.ok(html.includes(text), text);
+  for (const text of ["검색 결과 3명", "서버 참가자", "서버 운영팀", "서버 투자 전", "300,000", "700,000", "소진 완료", "미소진", "/admin/investors/inv%2F01"]) assert.ok(html.includes(text), text);
   assert.equal((html.match(/<tbody[\s\S]*?<\/tbody>/)[0].match(/<tr/g) || []).length, 3);
   assert.ok(!html.includes("검색 결과 52명"));
+  assert.ok(!html.includes("미지급"));
   const empty = client(); empty.setQueryData(key, { ...data, items: [], count: 0 }); assert.ok(render(empty).includes("검색 결과 없음")); assert.ok(render(empty).includes("아직 투자자가 나오지 않았어요"));
   assert.ok(render(client()).includes("LoadingArc.png"));
   const initialError = client(); initialError.setQueryData(key, data); initialError.getQueryCache().find({ queryKey: key }).setState({ data: undefined, status: "error", error: failure(500), errorUpdatedAt: Date.now(), fetchStatus: "idle" }); assert.ok(render(initialError).includes("정보를 불러오지 못했어요")); assert.ok(!render(initialError).includes("서버 참가자"));
