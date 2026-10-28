@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../utils/authError";
 import InvestmentFlowProvider from "../../investment/components/InvestmentFlowProvider";
 import { Navigate, Outlet } from "react-router-dom";
 import { useInvestorSession } from "../hooks/useInvestorSession";
@@ -16,7 +17,7 @@ export default function InvestorProtectedRoute({
   if (session.isError) {
     return (
       <div role="alert">
-        <p>로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
+        <p>{accessBlockedMessage(session.error) ?? "로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."}</p>
         <button
           type="button"
           onClick={() => void session.refetch()}

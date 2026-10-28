@@ -22,7 +22,7 @@ try {
   function wrap(c, element, path = "/admin/investors?spendingStatus=ALL", restoring = true) { return renderToStaticMarkup(React.createElement(QueryClientProvider, { client: c }, React.createElement(IsRestoringProvider, { value: restoring }, React.createElement(MemoryRouter, { initialEntries: [path] }, element)))); }
   function capture(c, params = filters, enabled = true) { function Harness() { useAdminInvestors(params, enabled); return null; } wrap(c, React.createElement(Harness)); return c.getQueryCache().find({ queryKey: adminInvestorsQueryKey(adminId, params) }).options; }
   function render(c, context = {}, restoring = true) { return wrap(c, React.createElement(Routes, null, React.createElement(Route, { element: React.createElement(Outlet, { context }) }, React.createElement(Route, { path: "/admin/investors", element: React.createElement(Page) }))), undefined, restoring); }
-  const failure = (status, headers = {}) => new AxiosError("test", undefined, undefined, undefined, { status, data: { error: { code: status === 403 ? "FORBIDDEN" : status === 429 ? "RATE_LIMITED" : "INTERNAL_ERROR" } }, headers });
+  const failure = (status, headers = {}) => new AxiosError("test", undefined, undefined, undefined, { status, data: { error: { code: status === 401 ? "SESSION_EXPIRED" : status === 403 ? "FORBIDDEN" : status === 429 ? "RATE_LIMITED" : "INTERNAL_ERROR" } }, headers });
 
   assert.equal(parseInvestorFilters(new URLSearchParams()).spendingStatus, "UNSPENT");
   const combined = parseInvestorFilters(new URLSearchParams("q=팀%2003&teamId=03&kind=PARTICIPANT&spendingStatus=COMPLETED"));

@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import SpendingStatusBadge from "../../features/admin/components/SpendingStatusBadge";
 import { isAxiosError } from "axios";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
@@ -33,7 +34,7 @@ export default function InvestorDetailPage() {
   if (query.isError || (!query.data && query.errorUpdatedAt > 0)) {
     return <section aria-busy={query.isFetching} className="flex min-h-[calc(100dvh-84px)] flex-col items-center justify-center gap-4 text-center">
       <h1 role="alert" className="text-xl font-bold text-[#222] min-[1800px]:text-2xl">정보를 불러오지 못했어요</h1>
-      <p className="text-sm text-[#777] min-[1800px]:text-base">잠시 후 다시 시도해 주세요.</p>
+      <p className="text-sm text-[#777] min-[1800px]:text-base">{accessBlockedMessage(query.error) ?? "잠시 후 다시 시도해 주세요."}</p>
       <button type="button" disabled={query.isFetching || layout?.isUpdating || layout?.isLoggingOut} onClick={() => { if (!query.isFetching) void query.refetch(); }} className="min-h-11 rounded-lg bg-dark px-7 py-3 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 min-[1800px]:text-base">
         {query.isFetching ? "다시 불러오는 중..." : "재시도"}
       </button>

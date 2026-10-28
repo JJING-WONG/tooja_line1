@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { useEffect, useRef, useState } from "react";
 import DesktopErrorDialog from "../../components/ui/DesktopErrorDialog";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
@@ -16,6 +17,7 @@ const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
 export default function DashboardPage() {
   const query = useDashboard();
   const statusQuery = useInvestmentStatus();
+  const blockedMessage = accessBlockedMessage(query.error) ?? accessBlockedMessage(statusQuery.error);
   const isPaused = statusQuery.data?.status === "PAUSED";
   const isInitialLoading = !query.data && !query.isError;
   const isInitialError = !query.data && query.isError;
@@ -71,7 +73,7 @@ export default function DashboardPage() {
         <LoadingOverlay variant="desktop" mode="initial" theme="dark" />
       ) : isInitialError ? (
         <DesktopErrorDialog
-          title={<>순위 정보를<br />불러오지 못했어요</>}
+          title={blockedMessage ?? <>순위 정보를<br />불러오지 못했어요</>}
           dimBackground
           isRetrying={query.isFetching}
           onRetry={() => { if (!query.isFetching) void query.refetch(); }}
@@ -125,7 +127,7 @@ export default function DashboardPage() {
               aria-atomic="true"
               className={`shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 ${connectionStatus === "reconnecting" ? "w-65 text-[#fca5a5]" : isPaused ? "bg-[#2a2f36]/50 text-[#ffcb91]" : "w-36.75 text-[#a7f3d0]"}`}
             >
-              <p>{connectionStatus === "reconnecting" ? "● 연결이 끊겼어요 · 재연결 중" : isPaused ? `● 투자 일시중지됨 · ${lastUpdatedAt}` : `● 연결됨 · ${lastUpdatedAt}`}</p>
+              <p>{connectionStatus === "reconnecting" ? (blockedMessage ? "● 요청 차단 · 접속 환경 확인" : "● 연결이 끊겼어요 · 재연결 중") : isPaused ? `● 투자 일시중지됨 · ${lastUpdatedAt}` : `● 연결됨 · ${lastUpdatedAt}`}</p>
               {connectionStatus === "reconnecting" && <p className="text-xs leading-4.25 text-[#9ca3af]">마지막 갱신 {lastUpdatedAt}</p>}
             </div>
             <button

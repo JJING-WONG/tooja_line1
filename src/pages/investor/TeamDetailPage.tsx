@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { useState } from "react";
 import { isAxiosError } from "axios";
 import type { components } from "../../apis/schema";
@@ -27,7 +28,7 @@ export default function TeamDetailPage() {
     return <main className="min-h-dvh bg-white">
       <ErrorDialog
         title={isMissing ? "부스를 찾을 수 없어요" : "팀 정보를 불러오지 못했어요"}
-        message={isMissing ? "부스 목록에서 다시 확인해 주세요." : "잠시 후 다시 시도해 주세요."}
+        message={accessBlockedMessage(query.error) ?? (isMissing ? "부스 목록에서 다시 확인해 주세요." : "잠시 후 다시 시도해 주세요.")}
         confirmLabel={isMissing ? "부스 목록으로" : "재시도"}
         isBusy={query.isFetching}
         onBack={isMissing ? undefined : () => navigate("/invest")}
@@ -41,7 +42,7 @@ export default function TeamDetailPage() {
   }
   // 재조회가 진행 중이면 확정을 막고, 최신 응답 도착 시 선택·열린 확인창을 초기화합니다.
   return <>
-    {statusQuery.isError && <ErrorDialog title="투자 접수 상태를 확인하지 못했어요" message="상태를 다시 확인한 뒤 투자해 주세요." confirmLabel="재시도" isBusy={statusQuery.isFetching} onBack={() => navigate("/invest")} onConfirm={() => void statusQuery.refetch()} />}
+    {statusQuery.isError && <ErrorDialog title="투자 접수 상태를 확인하지 못했어요" message={accessBlockedMessage(statusQuery.error) ?? "상태를 다시 확인한 뒤 투자해 주세요."} confirmLabel="재시도" isBusy={statusQuery.isFetching} onBack={() => navigate("/invest")} onConfirm={() => void statusQuery.refetch()} />}
     <TeamDetailContent key={`${teamId}:${query.dataUpdatedAt}:${investmentStatus?.revision}`} detail={{ ...query.data, investmentStatus: investmentStatus ?? query.data.investmentStatus }} isRefreshing={query.isFetching || !statusQuery.isSuccess} />
   </>;
 }

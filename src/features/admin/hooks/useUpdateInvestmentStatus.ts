@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { isAxiosError, isCancel } from "axios";
 import type { components } from "../../../apis/schema";
 import { getAdminCsrf } from "../../auth/apis/auth.api";
 import { adminSessionQueryKey, useAdminSession } from "../../auth/hooks/useAdminSession";
 import { updateInvestmentStatus } from "../apis/admin.api";
 import { adminOverviewQueryKey, fetchAdminOverview } from "./useAdminOverview";
 import { adminErrorCode, assertAdminSession, handleAdminRequestError } from "../utils/adminRequest";
+
+import { accessBlockedMessage } from "../../auth/utils/authError";
 
 type Status = components["schemas"]["InvestmentStatus"]["status"];
 type Overview = components["schemas"]["Overview"];
@@ -61,7 +63,8 @@ export function useUpdateInvestmentStatus() {
       // 화면의 수치·다른 관리자 조회는 성공 응답 이후 재조회합니다.
       await client.invalidateQueries({ queryKey: ["admin"], refetchType: "none" });
     },
-    onError: (_error, status) => {
+    onError: (error, status) => {
+      if (isCancel(error)) return;
       if (adminId && client.getQueryData<components["schemas"]["AdminSession"] | null>(adminSessionQueryKey)?.admin.adminId === adminId) setFailedStatusChange(status);
     },
     onSettled: () => { lock.current = false; },
@@ -69,7 +72,7 @@ export function useUpdateInvestmentStatus() {
   return {
     failedStatusChange,
     isPending: mutation.isPending,
-    errorMessage: mutation.error ? (adminErrorCode(mutation.error) === "RATE_LIMITED" ? "요청이 잠시 제한되었어요" : "잠시 후 다시 시도해 주세요") : undefined,
+    errorMessage: mutation.error && !isCancel(mutation.error) ? (accessBlockedMessage(mutation.error) ?? (adminErrorCode(mutation.error) === "RATE_LIMITED" ? "요청이 잠시 제한되었어요" : "잠시 후 다시 시도해 주세요")) : undefined,
     update: (status: Status) => {
       if (lock.current || !adminId || client.isMutating({ mutationKey: ["admin", "investment-status"] }) > 0) return;
       if (failedStatusChange !== status) setFailedStatusChange(null);

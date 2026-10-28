@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import type { components } from "../../apis/schema";
@@ -177,11 +178,11 @@ export default function InvestorPerformancePage() {
         <div className="flex items-center justify-between gap-4 rounded-xl bg-[#fdecec] p-4.5 text-[#b42318] [&_p]:mt-1.5" role="alert">
           <div>
             <strong>
-              {limited
+              {accessBlockedMessage(rankings.error) ?? (limited
                 ? "잠시 후 다시 조회해 주세요."
                 : rankings.data
                   ? "새 정보를 불러오지 못했어요."
-                  : "성과를 불러오지 못했어요."}
+                  : "성과를 불러오지 못했어요.")}
             </strong>
             <p>
               {rankings.data

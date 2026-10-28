@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { isAxiosError } from "axios";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import { useMyInvestment } from "../../features/investment/hooks/useMyInvestment";
@@ -60,7 +61,7 @@ export default function InvestmentSuccessPage() {
           <p role="status" className="flex h-12 shrink-0 items-center rounded-xl bg-[#f4f4f4] px-4 text-[15px] font-medium leading-5.25 text-[#989898]">투자 금액을 모두 소진했어요</p>
         ) : <div aria-hidden="true" className="h-12 shrink-0" />}
 
-        {isError && <p className="px-4 text-[14px] leading-5 text-[#777]">잠시 후 다시 시도해 주세요.</p>}
+        {isError && <p className="px-4 text-[14px] leading-5 text-[#777]">{accessBlockedMessage(query.error) ?? "잠시 후 다시 시도해 주세요."}</p>}
 
         {hasResult && <>
         <dl className="flex shrink-0 flex-col gap-3 rounded-xl bg-[#f4f4f4] p-4">

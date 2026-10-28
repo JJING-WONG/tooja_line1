@@ -1,10 +1,12 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { isAxiosError, isCancel } from "axios";
 import { useNavigate } from "react-router-dom";
 import type { components } from "../../../apis/schema";
 import { getInvestorCsrf, logoutInvestor } from "../apis/auth.api";
 import { investorSessionQueryKey } from "./useInvestorSession";
+
+import { accessBlockedMessage, isSessionAuthError } from "../utils/authError";
 
 type InvestorSession = components["schemas"]["InvestorSession"];
 
@@ -29,6 +31,7 @@ export function useInvestorLogout() {
       try {
         await logoutInvestor(csrfToken);
       } catch (error) {
+        if (isSessionAuthError(error)) return;
         if (
           !isAxiosError<components["schemas"]["ApiError"]>(error) ||
           error.response?.data?.error?.code !== "CSRF_INVALID"
@@ -37,7 +40,8 @@ export function useInvestorLogout() {
         }
         // 세션 만료 시에도 준비 토큰으로 로그아웃할 수 있습니다. 한 번만 재시도합니다.
         const prepared = await getInvestorCsrf();
-        await logoutInvestor(prepared.csrfToken);
+        try { await logoutInvestor(prepared.csrfToken); }
+        catch (retryError) { if (!isSessionAuthError(retryError)) throw retryError; }
       }
     },
     onSuccess: async () => {
@@ -66,8 +70,8 @@ export function useInvestorLogout() {
       logout.mutate();
     },
     isPending: logout.isPending,
-    errorMessage: logout.isError
-      ? "로그아웃에 실패했습니다. 다시 시도해 주세요."
+    errorMessage: logout.isError && !isCancel(logout.error)
+      ? accessBlockedMessage(logout.error) ?? "로그아웃에 실패했습니다. 다시 시도해 주세요."
       : undefined,
     resetError: logout.reset,
   };

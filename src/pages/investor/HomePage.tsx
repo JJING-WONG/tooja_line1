@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { useInvestorLogout } from "../../features/auth/hooks/useInvestorLogout";
 import { useState } from "react";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
@@ -58,9 +59,9 @@ export default function HomePage() {
         {teamsQuery.isError && (
           <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
             <p>
-              {home
+              {accessBlockedMessage(teamsQuery.error) ?? (home
                 ? "최신 정보를 불러오지 못했습니다. 이전 조회 결과를 표시합니다."
-                : "투자 현황과 부스 목록을 불러오지 못했습니다."}
+                : "투자 현황과 부스 목록을 불러오지 못했습니다.")}
             </p>
             <button
               type="button"
@@ -74,7 +75,7 @@ export default function HomePage() {
         )}
         {statusQuery.isError && (
           <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
-            <p>투자 접수 상태를 갱신하지 못했어요. 잠시 후 다시 확인해 주세요.</p>
+            <p>{accessBlockedMessage(statusQuery.error) ?? "투자 접수 상태를 갱신하지 못했어요. 잠시 후 다시 확인해 주세요."}</p>
             <button type="button" disabled={statusQuery.isFetching} onClick={() => void statusQuery.refetch()} className="mt-2 cursor-pointer rounded text-secondary underline disabled:opacity-60">다시 시도</button>
           </div>
         )}
@@ -92,7 +93,7 @@ export default function HomePage() {
       </div>
       {isLoading && <LoadingOverlay />}
       {teamsQuery.isError && teamsQuery.errorUpdatedAt !== dismissedErrorAt && (
-        <ErrorDialog onConfirm={() => setDismissedErrorAt(teamsQuery.errorUpdatedAt)} />
+        <ErrorDialog message={accessBlockedMessage(teamsQuery.error)} onConfirm={() => setDismissedErrorAt(teamsQuery.errorUpdatedAt)} />
       )}
     </main>
   );

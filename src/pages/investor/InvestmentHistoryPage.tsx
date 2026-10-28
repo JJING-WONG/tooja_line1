@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../../features/auth/utils/authError";
 import { useMyInvestments } from "../../features/investment/hooks/useMyInvestments";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import ErrorDialog from "../../components/ui/ErrorDialog";
@@ -38,7 +39,7 @@ export default function InvestmentHistoryPage() {
         {isError ? (
           <ErrorDialog
             title="투자 내역을 불러오지 못했어요"
-            message="잠시 후 다시 시도해 주세요."
+            message={accessBlockedMessage(query.error) ?? "잠시 후 다시 시도해 주세요."}
             confirmLabel="재시도"
             isBusy={isRetrying}
             onConfirm={() => { if (!isRetrying) void query.refetch(); }}

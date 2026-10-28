@@ -1,5 +1,5 @@
 import { useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { isSessionAuthError } from "../../auth/utils/authError";
 import type { components } from "../../../apis/schema";
 import {
   investorSessionQueryKey,
@@ -37,10 +37,7 @@ export function useInvestorTeams() {
       try {
         return await getInvestorTeams(signal);
       } catch (error) {
-        if (
-          isAxiosError(error) &&
-          (error.response?.status === 401 || error.response?.status === 403)
-        ) {
+        if (isSessionAuthError(error)) {
           const latestSession = queryClient.getQueryData<InvestorSession | null>(
             investorSessionQueryKey,
           );

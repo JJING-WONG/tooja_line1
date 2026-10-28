@@ -1,7 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { isAxiosError, isCancel } from "axios";
 import type { components } from "../../../apis/schema";
 import { adminSessionQueryKey } from "../../auth/hooks/useAdminSession";
+
+import { apiErrorCode, isSessionAuthError } from "../../auth/utils/authError";
 
 type AdminSession = components["schemas"]["AdminSession"];
 export class AdminRequestCooldown extends Error {
@@ -20,12 +22,12 @@ export function assertAdminSession(client: QueryClient, adminId: string) {
   return session;
 }
 export function adminErrorCode(error: unknown) {
-  return isAxiosError<components["schemas"]["ApiError"]>(error) ? error.response?.data?.error?.code : undefined;
+  return apiErrorCode(error);
 }
 export async function handleAdminRequestError(client: QueryClient, adminId: string, error: unknown, session: AdminSession, signal?: AbortSignal) {
-  if (signal?.aborted || !isAxiosError(error) || client.getQueryData<AdminSession | null>(adminSessionQueryKey)?.admin.adminId !== adminId) return;
+  if (signal?.aborted || isCancel(error) || !isAxiosError(error) || client.getQueryData<AdminSession | null>(adminSessionQueryKey) !== session || session.admin.adminId !== adminId) return;
   const status = error.response?.status;
-  if (client.getQueryData(adminSessionQueryKey) === session && (status === 401 || (status === 403 && adminErrorCode(error) !== "CSRF_INVALID"))) {
+  if (client.getQueryData(adminSessionQueryKey) === session && isSessionAuthError(error)) {
     await client.cancelQueries({ queryKey: adminSessionQueryKey });
     if (client.getQueryData(adminSessionQueryKey) === session) client.setQueryData(adminSessionQueryKey, null);
   }

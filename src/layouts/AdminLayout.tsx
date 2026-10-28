@@ -1,3 +1,4 @@
+import { accessBlockedMessage } from "../features/auth/utils/authError";
 import { useAdminLogout } from "../features/auth/hooks/useAdminLogout";
 import { useState } from "react";
 import type { components } from "../apis/schema";
@@ -64,7 +65,7 @@ export default function AdminLayout() {
             <h1 id="admin-initial-error-title" role="alert" className="text-xl font-bold leading-7 text-[#222] min-[1800px]:text-2xl">
               정보를 불러오지 못했어요
             </h1>
-            <p className="text-sm leading-5 text-[#777] min-[1800px]:text-base">잠시 후 다시 시도해 주세요.</p>
+            <p className="text-sm leading-5 text-[#777] min-[1800px]:text-base">{accessBlockedMessage(overview.error) ?? "잠시 후 다시 시도해 주세요."}</p>
             <button
               type="button"
               disabled={overview.isFetching}
@@ -87,7 +88,7 @@ export default function AdminLayout() {
           }}
         />
       )}
-      {!showStatusError && !isInitialError && showRefreshError && !isUpdating && <AdminRefreshErrorDialog isRetrying={overview.isFetching} onRetry={retryOverview} onDismiss={() => setDismissedRefreshAt(overview.dataUpdatedAt)} />}
+      {!showStatusError && !isInitialError && showRefreshError && !isUpdating && <AdminRefreshErrorDialog title={accessBlockedMessage(overview.error)} isRetrying={overview.isFetching} onRetry={retryOverview} onDismiss={() => setDismissedRefreshAt(overview.dataUpdatedAt)} />}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { isAxiosError } from "axios";
 import type { components } from "../../../apis/schema";
 import { createInvestment, getInvestmentRequest } from "../apis/investment.api";
 
-type ApiError = components["schemas"]["ApiError"];
+import { apiErrorCode, isSessionAuthError, accessBlockedMessage } from "../../auth/utils/authError";
 export type PendingInvestment = {
   investorId: string;
   requestKey: string;
@@ -34,14 +34,14 @@ const messages: Record<string, string> = {
 };
 
 export function investmentErrorCode(error: unknown) {
-  return isAxiosError<ApiError>(error) ? error.response?.data?.error?.code : undefined;
+  return apiErrorCode(error);
 }
 
 function classify(error: unknown): InvestmentFailure {
   if (error instanceof InvestmentFailure) return error;
   const status = isAxiosError(error) ? error.response?.status : undefined;
   const code = investmentErrorCode(error);
-  if (status === 401 || (status === 403 && code === "FORBIDDEN")) {
+  if (isSessionAuthError(error)) {
     return new InvestmentFailure("로그인 상태를 다시 확인해 주세요.", "auth");
   }
   if (status === 409 && code === "INVESTMENT_PAUSED") {
@@ -55,7 +55,7 @@ function classify(error: unknown): InvestmentFailure {
   if (!status || status >= 500 || code === "IDEMPOTENCY_KEY_REUSED") {
     return new InvestmentFailure("결과를 확인하지 못했어요. 같은 요청의 결과를 다시 확인해 주세요.", "unknown");
   }
-  return new InvestmentFailure(messages[code ?? ""] ?? "투자하지 못했어요. 투자 정보를 다시 확인해 주세요.", "rejected");
+  return new InvestmentFailure(accessBlockedMessage(error) ?? messages[code ?? ""] ?? "투자하지 못했어요. 투자 정보를 다시 확인해 주세요.", "rejected");
 }
 
 // #8·#11: 자동 POST는 최초 전송 + 결과 없음에 따른 동일 키 재전송 한 번으로 제한합니다.

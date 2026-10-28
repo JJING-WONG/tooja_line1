@@ -1,9 +1,11 @@
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { isAxiosError, isCancel } from "axios";
 import type { components } from "../../../apis/schema";
 import { getAdminCsrf, loginAdmin } from "../apis/auth.api";
 import { adminSessionQueryKey } from "./useAdminSession";
+
+import { accessBlockedMessage } from "../utils/authError";
 
 const csrfQueryOptions = {
   queryKey: ["auth", "admin", "csrf"],
@@ -15,7 +17,9 @@ const csrfQueryOptions = {
 } as const;
 
 function getLoginErrorMessage(error: unknown): string | undefined {
-  if (!error) return undefined;
+  if (!error || isCancel(error)) return undefined;
+  const blocked = accessBlockedMessage(error);
+  if (blocked) return blocked;
   if (isAxiosError<components["schemas"]["ApiError"]>(error)) {
     const code = error.response?.data?.error?.code;
     if (code === "AUTHENTICATION_FAILED" || code === "VALIDATION_FAILED") {
