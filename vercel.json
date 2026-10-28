@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://api.leafeep.com/api/v1/:path*"
+    },
     { "source": "/login", "destination": "/index.html" },
     { "source": "/invest/:path*", "destination": "/index.html" },
     { "source": "/admin/:path*", "destination": "/index.html" },

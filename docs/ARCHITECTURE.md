@@ -103,7 +103,7 @@ scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 - 기능별 요청 함수는 공통 접두사를 제외한 경로를 전달한다. 예: `/investor/teams`, `/admin/overview`.
 - [vite.config.ts](../vite.config.ts)는 `.env`의 `API_PROXY_TARGET`을 개발 서버의 프록시 대상으로 사용한다. 프론트엔드 요청 경로 자체를 환경변수로 바꾸는 구조가 아니다.
 - 개발 프록시는 백엔드 Origin 검사에 맞춰 `Origin`을 설정하고, 로컬 HTTP에서 쿠키를 사용할 수 있도록 응답 쿠키의 `Secure` 속성을 제거한다. 이 처리는 개발 서버 설정이다.
-- `preview`·배포 환경은 `/api/v1` 전달과 SPA 경로의 `index.html` 복귀 설정을 별도로 구성해야 한다.
+- Vercel은 루트 `vercel.json`에서 `/api/v1/*`을 `https://api.leafeep.com/api/v1/*`으로 전달하고, 앱 경로는 `index.html`로 연결한다. 개발 프록시의 Origin 변경·Secure 제거는 적용하지 않는다. 백엔드의 배포 Origin 허용·쿠키 동작은 배포 후 확인한다. `preview`에는 별도 API 프록시가 필요하다.
 - 명세는 [openapi.json](./openapi.json), 타입은 [schema.d.ts](../src/apis/schema.d.ts)를 기준으로 한다. `npm run api:sync`로 함께 갱신한다.
 - 조회에는 `AbortSignal`을 전달해 화면·조건·사용자 변경 또는 로그아웃 시 진행 중인 요청을 취소한다. CSRF는 필요한 변경 요청의 헤더에 전달한다.
 
