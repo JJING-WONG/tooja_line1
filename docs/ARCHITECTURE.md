@@ -30,6 +30,7 @@
 | A02 | `/admin` | 운영 현황 | PC | 관리자 |
 | A03 | `/admin/investors` | 투자자 목록 | PC | 관리자 |
 | A04 | `/admin/investors/:investorId` | 투자자 상세 | PC | 관리자 |
+| — | `/admin/performance` | 투자자 성과 순위 | PC | 관리자 |
 | D01 | `/dashboard` | 공개 대시보드 | PC 16:9 | 공개 |
 
 - `InvestorProtectedRoute`는 투자자 세션을 확인한다. 미인증이면 `/login`, 이미 로그인한 사용자가 P01에 접근하면 `/invest`로 이동한다.
@@ -64,9 +65,9 @@ src/
 │   │   ├── hooks/                 # 투자 처리·내역/거래 조회
 │   │   └── utils/                 # 요청 키 보관·결과 판정·동일 키 복구
 │   ├── admin/
-│   │   ├── apis/                  # 운영 현황·투자자 조회·접수 상태 변경
-│   │   ├── components/            # 사이드바·상태 배지·갱신 오류 모달
-│   │   ├── hooks/                 # 현황/목록/상세 조회·접수 상태 변경
+│   │   ├── apis/                  # 운영 현황·투자자 조회·성과 순위·접수 상태 변경
+│   │   ├── components/            # 사이드바·상태 배지·오류 모달·점수 팝오버
+│   │   ├── hooks/                 # 현황/목록/상세/성과 조회·접수 상태 변경
 │   │   └── utils/                 # 관리자 요청 인증·재요청 대기 공통 처리
 │   └── dashboard/
 │       ├── apis/                  # 공개 순위·투자 접수 상태 요청
@@ -76,12 +77,13 @@ src/
 │   └── InvestorLayout.tsx         # 현재 비어 있으며 라우팅에서 사용하지 않음
 ├── pages/
 │   ├── investor/                  # P01~P05
-│   ├── admin/                     # A01~A04
+│   ├── admin/                     # A01~A04·InvestorPerformancePage
 │   └── dashboard/                 # D01
 ├── App.tsx                        # 라우트·보호 영역 구성
 ├── main.tsx                       # 전역 Provider·앱 진입점
 └── index.css                      # 폰트·테마·공통 스타일
 
+vercel.json                        # 배포 API 전달·SPA 직접 경로 설정
 docs/                              # 설계·현황·OpenAPI 명세
 scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 ```
@@ -103,7 +105,7 @@ scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 - 기능별 요청 함수는 공통 접두사를 제외한 경로를 전달한다. 예: `/investor/teams`, `/admin/overview`.
 - [vite.config.ts](../vite.config.ts)는 `.env`의 `API_PROXY_TARGET`을 개발 서버의 프록시 대상으로 사용한다. 프론트엔드 요청 경로 자체를 환경변수로 바꾸는 구조가 아니다.
 - 개발 프록시는 백엔드 Origin 검사에 맞춰 `Origin`을 설정하고, 로컬 HTTP에서 쿠키를 사용할 수 있도록 응답 쿠키의 `Secure` 속성을 제거한다. 이 처리는 개발 서버 설정이다.
-- Vercel은 루트 `vercel.json`에서 `/api/v1/*`을 `https://api.leafeep.com/api/v1/*`으로 전달하고, 앱 경로는 `index.html`로 연결한다. 개발 프록시의 Origin 변경·Secure 제거는 적용하지 않는다. 백엔드의 배포 Origin 허용·쿠키 동작은 배포 후 확인한다. `preview`에는 별도 API 프록시가 필요하다.
+- Vercel은 루트 `vercel.json`에서 `/api/v1/*`을 `https://api.leafeep.com/api/v1/*`으로 전달하고, 앱 경로는 `index.html`로 연결한다. 개발 프록시의 Origin 변경·Secure 제거는 적용하지 않는다. 백엔드에서 배포 Origin을 허용해야 하며, 주소 변경 시 로그인·세션 쿠키 동작을 다시 확인한다. `preview`에는 별도 API 프록시가 필요하다.
 - 명세는 [openapi.json](./openapi.json), 타입은 [schema.d.ts](../src/apis/schema.d.ts)를 기준으로 한다. `npm run api:sync`로 함께 갱신한다.
 - 조회에는 `AbortSignal`을 전달해 화면·조건·사용자 변경 또는 로그아웃 시 진행 중인 요청을 취소한다. CSRF는 필요한 변경 요청의 헤더에 전달한다.
 
@@ -123,6 +125,7 @@ scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 | 관리자 운영 현황 | `["admin", "overview", adminId]` |
 | 관리자 투자자 목록 | `["admin", "investors", adminId, filters]` |
 | 관리자 투자자 상세 | `["admin", "investor", adminId, investorId]` |
+| 관리자 투자자 성과 | `["admin", "investor-rankings", adminId, group]` |
 | 공개 대시보드 | `["public", "dashboard"]` |
 | 공개 투자 접수 상태 | `["public", "investment-status"]` |
 
@@ -143,6 +146,14 @@ D01은 공개 순위를 2초 주기로 조회하며 숨김 탭에서 주기 조�
 - `adminRequest.ts`는 관리자 세션 확인과 인증 오류·`Retry-After`를 처리한다. 관리자별 재요청 허용 시각을 `["admin", "request-cooldown", adminId]`에 보관해 조회·변경 요청이 함께 준수한다.
 - 최초 로딩·조회 실패와 기존 데이터가 있는 갱신 실패를 구분한다. A02·A03의 자동 갱신 실패는 기존 데이터를 유지하며 동일 장애의 모달 반복 표시를 막는다.
 - 접수 상태 변경 전 이전 관리자 조회를 취소한다. 서버 성공 응답을 확인한 뒤 상태를 반영하고, 응답 유실 시 현황 재조회로 변경 여부를 확인한다.
+
+### 관리자 투자자 성과
+
+- [InvestorPerformancePage](../src/pages/admin/InvestorPerformancePage.tsx)는 `/admin/performance`에서 #23을 [useAdminInvestorRankings](../src/features/admin/hooks/useAdminInvestorRankings.ts)로 조회한다. 공통 AdminLayout의 인증·사이드바·접수 제어를 재사용한다.
+- `getAdminInvestorRankings`는 `ALL`에서 쿼리를 생략하고 참가자/운영팀은 `group=PARTICIPANT|STAFF`로 요청한다. 그룹은 URL에 보관하며 이름·소속 검색과 미투자자 제외(`rank !== null`)는 응답 목록에서 처리한다.
+- 캐시는 관리자 ID·그룹별로 분리하며 다른 그룹의 이전 데이터를 placeholder로 표시하지 않는다. 5초 주기, 숨김 탭·로그아웃·접수 변경 중 중단, 포커스·재연결 시 갱신, 공통 인증 오류·재요청 대기를 적용한다.
+- 개인 순위·점수는 서버 응답을 사용한다. `contributions`는 팀별 점수 근거 팝오버와 투자액 합산 상태 배지에 사용한다. #23이 반환하지 않는 지급액·잔액·`spendingStatus`를 가정하지 않는다.
+- `InvestorScorePopover`·점수 산정 가이드는 `AdminHoverCard`를 공유하며 키보드 진입·Esc 닫기·트리거 포커스 복귀를 지원한다. 별도 CSS 없이 Tailwind를 사용한다.
 
 화면 표시 시각은 `Asia/Seoul`로 변환한다. 응답의 `asOf`는 조회 기준 시각, `snapshotVersion`은 투자 커밋 버전, `investmentStatus.revision`은 접수 상태 변경 버전으로 구분한다.
 
