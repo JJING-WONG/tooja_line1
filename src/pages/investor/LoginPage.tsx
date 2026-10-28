@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useInvestorLogin } from "../../features/auth/hooks/useInvestorLogin";
-import loginLogo from "../../assets/LoginLogo.svg";
+import loginLogo from "../../assets/Line1LoginLogo.png";
 import wordmark from "../../assets/MALLAGE_LoginPage.svg";
 
 export default function LoginPage() {
@@ -18,7 +18,14 @@ export default function LoginPage() {
       <div className="mx-auto w-full max-w-84">
         <header className="flex flex-col items-center text-center">
           <div className="flex h-26 w-full items-center justify-center">
-            <img src={loginLogo} alt="" className="h-35.5 w-34.5 shrink-0" />
+            {/* Figma 원본 104.213px 로고와 바깥 그림자를 포함한 이미지 크기 */}
+            <img
+              src={loginLogo}
+              alt="1호선톤"
+              width={127}
+              height={127}
+              className="h-[127px] w-[127px] shrink-0"
+            />
           </div>
           <div className="mt-3 flex h-13 w-full items-end justify-center pb-1">
             <img

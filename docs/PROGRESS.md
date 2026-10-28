@@ -23,6 +23,8 @@
 
 ### 최근 완료
 
+- 배포 후속 작업은 사용자 요청으로 보류. P01 `/login` 상단 말 로고를 Figma `50:1074`의 1호선톤 원형 로고(`258:17`) 원본 PNG로 교체. 104.213px 본체·그림자를 포함한 127px 이미지 사용, 워드마크·폼·인증 동작 유지. Chrome에서 이미지 로드·127×127 표시 확인, 빌드·린트 통과.
+
 - Vercel API 404 대응: `/api/v1/*`을 기존 명세 서버 `https://api.leafeep.com/api/v1/*`으로 전달하는 외부 rewrite 추가. 재배포 후 세션 조회·로그인·쿠키 유지 및 백엔드 배포 Origin 허용 확인 필요(배포 환경 미검증).
 
 - Vercel 직접 경로 404 대응: 루트 `vercel.json`에 `/login`·`/invest/*`·`/admin/*`·`/dashboard`의 `index.html` rewrite 추가. API 경로는 SPA 대상에서 제외. 재배포 후 직접 접근·새로고침 검증 및 API 프록시·쿠키 설정은 별도 필요.
