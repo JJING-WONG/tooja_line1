@@ -11,6 +11,31 @@ export type PendingInvestment = {
   waitingForResume?: boolean;
 };
 
+export class InvestmentRequestKeyError extends Error {
+  constructor() {
+    super("투자 요청 정보를 만들 수 없어요. HTTPS 접속 또는 최신 브라우저를 확인해 주세요.");
+  }
+}
+
+// 새로운 논리적 투자에만 사용합니다. 복구·재시도는 보관한 키를 그대로 사용합니다.
+export function createInvestmentRequestKey(): string {
+  const secureCrypto = globalThis.crypto;
+  if (typeof secureCrypto?.randomUUID === "function") {
+    try { return secureCrypto.randomUUID(); }
+    catch { /* 기본 생성 실패 시에도 암호학적 난수로만 대체합니다. */ }
+  }
+  if (typeof secureCrypto?.getRandomValues === "function") {
+    try {
+      const bytes = secureCrypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    } catch { /* 안전한 키를 만들 수 없으면 요청을 전송하지 않습니다. */ }
+  }
+  throw new InvestmentRequestKeyError();
+}
+
 export class InvestmentFailure extends Error {
   outcome: "rejected" | "unknown" | "auth" | "paused";
   retryAt?: number;

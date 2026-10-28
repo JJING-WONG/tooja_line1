@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import type { components } from "../../../apis/schema";
 import { getInvestorCsrf } from "../../auth/apis/auth.api";
 import { investorSessionQueryKey } from "../../auth/hooks/useInvestorSession";
-import { clearPendingInvestment, InvestmentFailure, readPendingInvestment, resolveInvestment, savePendingInvestment } from "../utils/investmentRequest";
+import { clearPendingInvestment, createInvestmentRequestKey, InvestmentRequestKeyError, InvestmentFailure, readPendingInvestment, resolveInvestment, savePendingInvestment } from "../utils/investmentRequest";
 import type { PendingInvestment } from "../utils/investmentRequest";
 
 import { investmentStatusQueryKey, latestInvestmentStatus, useInvestmentStatus } from "../../dashboard/hooks/useInvestmentStatus";
@@ -141,7 +141,7 @@ export function useCreateInvestment(investorId: string) {
       }
       // 기존 복구 요청이 있으면 새 키로 덮어쓰지 않습니다.
       const existing = readPendingInvestment(investorId);
-      const request = existing ?? { investorId, requestKey: crypto.randomUUID(), input: { teamId: view.selection.teamId, amount: view.selection.amount } };
+      const request = existing ?? { investorId, requestKey: createInvestmentRequestKey(), input: { teamId: view.selection.teamId, amount: view.selection.amount } };
       savePendingInvestment(request); // 저장할 수 없으면 전송하지 않습니다.
       lock.current = true;
       mutate({ request, recover: existing !== null });
@@ -149,7 +149,8 @@ export function useCreateInvestment(investorId: string) {
       if (error instanceof InvestmentFailure && error.outcome === "auth") {
         if (isCurrent()) queryClient.setQueryData(investorSessionQueryKey, null);
       } else {
-        setView((previous) => ({ ...previous, status: "error", message: "투자 정보를 저장하지 못했어요. 브라우저 저장 설정을 확인해 주세요." }));
+        const message = error instanceof InvestmentRequestKeyError ? error.message : "투자 정보를 저장하지 못했어요. 브라우저 저장 설정을 확인해 주세요.";
+        setView((previous) => ({ ...previous, status: "error", message }));
       }
     }
   }

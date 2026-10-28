@@ -18,7 +18,7 @@ try {
  const key=['public','investment-status'];
  function client(status){const c=new QueryClient();clients.push(c);c.setQueryData(['auth','investor','session'],{investor:{investorId:'inv'},csrfToken:'token'});c.setQueryData(key,{status,revision:2,updatedAt:null});return c;}
  function render(c,element){return renderToStaticMarkup(React.createElement(QueryClientProvider,{client:c},React.createElement(IsRestoringProvider,{value:true},React.createElement(MemoryRouter,null,element))));}
- function flow(c){let captured;function Harness(){captured=useCreateInvestment('inv');return null;}render(c,React.createElement(Harness));return captured;}
+ function flow(c, selection){let captured;function Harness(){captured=useCreateInvestment('inv');if(selection && !captured.view.selection && captured.view.status==='idle')captured.open(selection);return null;}render(c,React.createElement(Harness));return captured;}
  function settle(c,action){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{off();reject(Error('timeout'));},3000);const off=c.getMutationCache().subscribe(e=>{if(e.mutation&&['success','error'].includes(e.mutation.state.status)){clearTimeout(timer);off();resolve();}});action();});}
  let calls=[];let steps=[];apiClient.defaults.adapter=async config=>{calls.push(config);const step=steps.shift();assert.ok(step,'unexpected request');assert.equal(config.method,step.method);if(step.error)throw step.error;return {data:step.data,status:200,statusText:'OK',headers:{},config};};
  const error=(status,code)=>new AxiosError('test',undefined,undefined,undefined,{status,data:{error:{code}},headers:{}});
@@ -30,5 +30,25 @@ try {
  const reload=client('RUNNING'),restored=flow(reload);assert.equal(restored.view.status,'paused');assert.equal(calls.length,2);
  steps=[{method:'get',error:error(404,'REQUEST_RESULT_NOT_FOUND')},{method:'post',data:receipt}];await settle(reload,restored.resume);assert.equal(calls.length,4);assert.equal(calls[3].headers['Idempotency-Key'],request.requestKey);assert.deepEqual(JSON.parse(calls[3].data),request.input);assert.equal(readPendingInvestment('inv'),null);
  savePendingInvestment(request);const rejected=client('RUNNING');steps=[{method:'get',data:{status:'REJECTED',error:{code:'INSUFFICIENT_BALANCE'}}}];await settle(rejected,flow(rejected).resume);assert.equal(readPendingInvestment('inv'),null);
+ const cryptoDescriptor=Object.getOwnPropertyDescriptor(globalThis,'crypto');
+ try {
+   const fresh=client('RUNNING');fresh.setQueryData(['investor','team','inv',5],{investmentStatus:{status:'RUNNING',revision:2},team:{teamId:5,investmentState:'AVAILABLE',allowedAmounts:[500000]}});
+   const selection={teamId:5,amount:500000,balanceAfter:500000};
+   Object.defineProperty(globalThis,'crypto',{configurable:true,value:undefined});
+   const unsupported=flow(fresh,selection);assert.deepEqual(unsupported.view.selection,selection);
+   function FailureHarness(){const f=useCreateInvestment('inv');if(f.view.status==='idle'){if(!f.view.selection)f.open(selection);else f.confirm();}return React.createElement('p',null,f.view.message);}
+   const message=render(fresh,React.createElement(FailureHarness));assert.ok(message.includes('HTTPS'));assert.ok(!message.includes('저장 설정'));
+   const before=calls.length;unsupported.confirm();assert.equal(calls.length,before);assert.equal(readPendingInvestment('inv'),null);
+   assert.equal(fresh.getMutationCache().getAll().length,0);
+   Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues(bytes){return bytes.fill(0);}}});
+   const workingStorage=globalThis.sessionStorage;
+   globalThis.sessionStorage={...workingStorage,setItem(){throw Error('storage denied');}};
+   try {const storageMessage=render(fresh,React.createElement(FailureHarness));assert.ok(storageMessage.includes('저장 설정'));assert.ok(!storageMessage.includes('HTTPS'));assert.equal(calls.length,before);assert.equal(fresh.getMutationCache().getAll().length,0);}
+   finally {globalThis.sessionStorage=workingStorage;}
+   steps=[{method:'post',data:receipt}];await settle(fresh,flow(fresh,selection).confirm);
+   assert.equal(calls.at(-1).headers['Idempotency-Key'],'00000000-0000-4000-8000-000000000000');assert.deepEqual(JSON.parse(calls.at(-1).data),request.input);
+   Object.defineProperty(globalThis,'crypto',{configurable:true,value:undefined});
+   savePendingInvestment(request);const reuse=client('RUNNING');steps=[{method:'get',data:{status:'SUCCEEDED',result:receipt}}];await settle(reuse,flow(reuse).resume);assert.equal(readPendingInvestment('inv'),null);
+ } finally {if(cryptoDescriptor)Object.defineProperty(globalThis,'crypto',cryptoDescriptor);else delete globalThis.crypto;}
  console.log('Paused investment checks passed: retained key/body, restored pause state, no requests on pause/render/resume detection, disabled/enabled UI, duplicate-submit lock, repeated pause persistence, manual same-key recovery and final cleanup. Browser lifecycle verification remains pending.');
 } finally {clients.forEach(c=>c.clear());globalThis.sessionStorage=oldStorage;await server.close();}

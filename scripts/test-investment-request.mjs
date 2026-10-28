@@ -6,7 +6,7 @@ import { AxiosError } from "axios";
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
 try {
   const { apiClient } = await server.ssrLoadModule("/src/apis/client.ts");
-  const { resolveInvestment, InvestmentFailure, readPendingInvestment, savePendingInvestment, clearPendingInvestment } = await server.ssrLoadModule("/src/features/investment/utils/investmentRequest.ts");
+  const { resolveInvestment, createInvestmentRequestKey, InvestmentRequestKeyError, InvestmentFailure, readPendingInvestment, savePendingInvestment, clearPendingInvestment } = await server.ssrLoadModule("/src/features/investment/utils/investmentRequest.ts");
   const request = { investorId: "investor-a", requestKey: "12345678-1234-4123-8123-123456789abc", input: { teamId: 5, amount: 500000 } };
   const receipt = { investment: { investmentId: "trade-1", teamId: 5, serviceName: "test", amount: 500000, confirmedAt: "2026-10-25T00:00:00Z" }, balanceAfterInvestment: 500000, snapshotVersion: 1 };
   const httpError = (status, code, headers = {}) => new AxiosError("test error", undefined, undefined, undefined, { status, data: { error: { code } }, headers });
@@ -79,6 +79,27 @@ try {
   await assert.rejects(run(true, { ...request, retryAt: Date.now() + 10000 }), e => e.outcome === "unknown");
   assert.equal(calls.length, 0);
 
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  const setCrypto = value => Object.defineProperty(globalThis, "crypto", { configurable: true, value });
+  try {
+    let nativeCalls = 0;
+    setCrypto({ randomUUID() { nativeCalls++; return request.requestKey; }, getRandomValues() { throw Error("must prefer native UUID"); } });
+    assert.equal(createInvestmentRequestKey(), request.requestKey); assert.equal(nativeCalls, 1);
+    for (const fill of [0, 255, 85, 170]) {
+      setCrypto({ getRandomValues(bytes) { assert.equal(bytes.length, 16); bytes.fill(fill); return bytes; } });
+      const key = createInvestmentRequestKey(); assert.match(key, uuidPattern);
+      const bytes = key.replaceAll("-", "").match(/../g).map(hex => parseInt(hex, 16));
+      assert.equal(bytes[6], (fill & 15) | 64); assert.equal(bytes[8], (fill & 63) | 128);
+      bytes.forEach((byte, index) => { if (index !== 6 && index !== 8) assert.equal(byte, fill); });
+    }
+    setCrypto({ randomUUID() { throw Error("unavailable"); }, getRandomValues(bytes) { return bytes.fill(0); } });
+    assert.equal(createInvestmentRequestKey(), "00000000-0000-4000-8000-000000000000");
+    for (const value of [undefined, {}, { getRandomValues() { throw Error("unavailable"); } }]) {
+      setCrypto(value); assert.throws(createInvestmentRequestKey, e => e instanceof InvestmentRequestKeyError && e.message.includes("HTTPS"));
+    }
+  } finally { if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor); else delete globalThis.crypto; }
+
   const memory = new Map();
   globalThis.sessionStorage = { getItem: key => memory.get(key) ?? null, setItem: (key, value) => memory.set(key, value), removeItem: key => memory.delete(key) };
   savePendingInvestment({ ...request, waitingForResume: true });
@@ -87,5 +108,5 @@ try {
   assert.deepEqual(readPendingInvestment(request.investorId), request);
   assert.equal(readPendingInvestment("another-investor"), null);
   clearPendingInvestment(request.investorId); assert.equal(readPendingInvestment(request.investorId), null);
-  console.log("Investment request regression checks passed (success, ambiguity, same-key replay, recovery, rejection, CSRF, auth, cooldown, storage isolation).");
+  console.log("Investment request regression checks passed (success, ambiguity, same-key replay, recovery, rejection, CSRF, auth, cooldown, storage isolation, native/fallback UUID v4 and unsupported crypto).");
 } finally { await server.close(); }
