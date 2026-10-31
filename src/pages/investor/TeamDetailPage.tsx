@@ -10,52 +10,115 @@ import arrowBack from "../../assets/ArrowBack.svg";
 import teamLogo from "../../assets/TeamLogo.svg";
 import { useInvestmentConfirmation } from "../../features/investment/hooks/useCreateInvestment";
 
-import { latestInvestmentStatus, useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmentStatus";
+import {
+  latestInvestmentStatus,
+  useInvestmentStatus,
+} from "../../features/dashboard/hooks/useInvestmentStatus";
 
 const amounts = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000];
 
 export default function TeamDetailPage() {
   const { teamId: pathTeamId } = useParams();
   const navigate = useNavigate();
-  const parsedId = pathTeamId && /^\d+$/.test(pathTeamId) ? Number(pathTeamId) : NaN;
-  const teamId = Number.isSafeInteger(parsedId) && parsedId >= 1 && parsedId <= 20 ? parsedId : null;
+  const parsedId =
+    pathTeamId && /^\d+$/.test(pathTeamId) ? Number(pathTeamId) : NaN;
+  const teamId =
+    Number.isSafeInteger(parsedId) && parsedId >= 1 && parsedId <= 20
+      ? parsedId
+      : null;
   const query = useInvestorTeam(teamId);
   const statusQuery = useInvestmentStatus();
-  const investmentStatus = latestInvestmentStatus(statusQuery.data, query.data?.investmentStatus);
-  const status = isAxiosError(query.error) ? query.error.response?.status : undefined;
+  const investmentStatus = latestInvestmentStatus(
+    statusQuery.data,
+    query.data?.investmentStatus,
+  );
+  const status = isAxiosError(query.error)
+    ? query.error.response?.status
+    : undefined;
   const isMissing = teamId === null || status === 404 || status === 422;
   if (isMissing || query.isError) {
-    return <main className="min-h-dvh bg-white">
-      <ErrorDialog
-        title={isMissing ? "부스를 찾을 수 없어요" : "팀 정보를 불러오지 못했어요"}
-        message={accessBlockedMessage(query.error) ?? (isMissing ? "부스 목록에서 다시 확인해 주세요." : "잠시 후 다시 시도해 주세요.")}
-        confirmLabel={isMissing ? "부스 목록으로" : "재시도"}
-        isBusy={query.isFetching}
-        onBack={isMissing ? undefined : () => navigate("/invest")}
-        onConfirm={() => { if (isMissing) navigate("/invest"); else void query.refetch(); }}
-      />
-    </main>;
+    return (
+      <main className="min-h-dvh bg-white">
+        <ErrorDialog
+          title={
+            isMissing ? "부스를 찾을 수 없어요" : "팀 정보를 불러오지 못했어요"
+          }
+          message={
+            accessBlockedMessage(query.error) ??
+            (isMissing
+              ? "부스 목록에서 다시 확인해 주세요."
+              : "잠시 후 다시 시도해 주세요.")
+          }
+          confirmLabel={isMissing ? "부스 목록으로" : "재시도"}
+          isBusy={query.isFetching}
+          onBack={isMissing ? undefined : () => navigate("/invest")}
+          onConfirm={() => {
+            if (isMissing) navigate("/invest");
+            else void query.refetch();
+          }}
+        />
+      </main>
+    );
   }
-  if (!query.data) return <main className="min-h-dvh bg-white"><LoadingOverlay mode="initial" /></main>;
-  if (query.data.team.investmentState === "SELF_TEAM" || query.data.team.investmentState === "ALREADY_INVESTED" || query.data.team.myInvestmentAmount > 0) {
+  if (!query.data)
+    return (
+      <main className="min-h-dvh bg-white">
+        <LoadingOverlay mode="initial" />
+      </main>
+    );
+  if (
+    query.data.team.investmentState === "SELF_TEAM" ||
+    query.data.team.investmentState === "ALREADY_INVESTED" ||
+    query.data.team.myInvestmentAmount > 0
+  ) {
     return <Navigate to="/invest" replace />;
   }
   // 재조회가 진행 중이면 확정을 막고, 최신 응답 도착 시 선택·열린 확인창을 초기화합니다.
-  return <>
-    {statusQuery.isError && <ErrorDialog title="투자 접수 상태를 확인하지 못했어요" message={accessBlockedMessage(statusQuery.error) ?? "상태를 다시 확인한 뒤 투자해 주세요."} confirmLabel="재시도" isBusy={statusQuery.isFetching} onBack={() => navigate("/invest")} onConfirm={() => void statusQuery.refetch()} />}
-    <TeamDetailContent key={`${teamId}:${query.dataUpdatedAt}:${investmentStatus?.revision}`} detail={{ ...query.data, investmentStatus: investmentStatus ?? query.data.investmentStatus }} isRefreshing={query.isFetching || !statusQuery.isSuccess} />
-  </>;
+  return (
+    <>
+      {statusQuery.isError && (
+        <ErrorDialog
+          title="투자 접수 상태를 확인하지 못했어요"
+          message={
+            accessBlockedMessage(statusQuery.error) ??
+            "상태를 다시 확인한 뒤 투자해 주세요."
+          }
+          confirmLabel="재시도"
+          isBusy={statusQuery.isFetching}
+          onBack={() => navigate("/invest")}
+          onConfirm={() => void statusQuery.refetch()}
+        />
+      )}
+      <TeamDetailContent
+        key={`${teamId}:${query.dataUpdatedAt}:${investmentStatus?.revision}`}
+        detail={{
+          ...query.data,
+          investmentStatus: investmentStatus ?? query.data.investmentStatus,
+        }}
+        isRefreshing={query.isFetching || !statusQuery.isSuccess}
+      />
+    </>
+  );
 }
 
-function TeamDetailContent({ detail, isRefreshing }: { detail: components["schemas"]["TeamDetail"]; isRefreshing: boolean }) {
+function TeamDetailContent({
+  detail,
+  isRefreshing,
+}: {
+  detail: components["schemas"]["TeamDetail"];
+  isRefreshing: boolean;
+}) {
   const { team, investor, investmentStatus } = detail;
   const balance = investor.balance;
   const isPaused = investmentStatus.status === "PAUSED";
-  const isAvailable = team.investmentState === "AVAILABLE" && !isPaused && !isRefreshing;
-  const isAmountAllowed = (amount: number) => isAvailable && team.allowedAmounts.includes(amount);
+  const isAvailable =
+    team.investmentState === "AVAILABLE" && !isPaused && !isRefreshing;
+  const isAmountAllowed = (amount: number) =>
+    isAvailable && team.allowedAmounts.includes(amount);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const openConfirmation = useInvestmentConfirmation();
-  const hasInsufficientBalance = team.investmentState === "BALANCE_EXHAUSTED" || balance < amounts[0];
+  const hasInsufficientBalance =
+    team.investmentState === "BALANCE_EXHAUSTED" || balance < amounts[0];
   const canInvest = selectedAmount !== null && isAmountAllowed(selectedAmount);
 
   return (
@@ -84,8 +147,8 @@ function TeamDetailContent({ detail, isRefreshing }: { detail: components["schem
               {team.description}
             </p>
             <p className="text-[10px] leading-3.5 text-[#eee]">
-              <span className="font-bold text-[#ffcabe]">[변경]</span>{" "}
-              <strong>이 팀에는 한 번만 투자할 수 있어요</strong>
+              <span className="font-bold text-[#ffcabe]">[주의]</span>{" "}
+              <strong>팀 당 한 번만 투자할 수 있어요</strong>
               <br />
               1회 10만~70만원
             </p>
@@ -119,41 +182,53 @@ function TeamDetailContent({ detail, isRefreshing }: { detail: components["schem
               {balance === 0 ? "0" : `${balance.toLocaleString("ko-KR")}원`}
             </dd>
           </div>
-          <div className={`flex items-center justify-between px-4 py-3.5 ${hasInsufficientBalance ? "h-12.25" : "h-13.25"}`}>
+          <div
+            className={`flex items-center justify-between px-4 py-3.5 ${hasInsufficientBalance ? "h-12.25" : "h-13.25"}`}
+          >
             <dt className="text-[14px] leading-5 text-[#777]">투자 금액</dt>
-            <dd className={`text-[#ce6161] ${hasInsufficientBalance ? "text-[15px] font-medium leading-5.25" : "text-[18px] font-bold leading-6.25"}`}>
+            <dd
+              className={`text-[#ce6161] ${hasInsufficientBalance ? "text-[15px] font-medium leading-5.25" : "text-[18px] font-bold leading-6.25"}`}
+            >
               {isPaused
                 ? "지금은 투자할 수 없어요"
                 : hasInsufficientBalance
-                ? "투자 잔액이 부족해요"
-                : selectedAmount === null
-                  ? "-"
-                  : `- ${selectedAmount.toLocaleString("ko-KR")}원`}
+                  ? "투자 잔액이 부족해요"
+                  : selectedAmount === null
+                    ? "-"
+                    : `- ${selectedAmount.toLocaleString("ko-KR")}원`}
             </dd>
           </div>
         </dl>
 
-        {!hasInsufficientBalance && <div className="flex h-15.75 shrink-0 items-center justify-between rounded-lg bg-[#f4f4f4] px-4 py-3.5">
-          <span className="text-[14px] leading-5 text-[#777]">
-            남은 잔액
-          </span>
-          <span className="text-[25px] font-bold leading-8.75 text-black">
-            {selectedAmount === null ? "-" : `${(balance - selectedAmount).toLocaleString("ko-KR")}원`}
-          </span>
-        </div>}
+        {!hasInsufficientBalance && (
+          <div className="flex h-15.75 shrink-0 items-center justify-between rounded-lg bg-[#f4f4f4] px-4 py-3.5">
+            <span className="text-[14px] leading-5 text-[#777]">남은 잔액</span>
+            <span className="text-[25px] font-bold leading-8.75 text-black">
+              {selectedAmount === null
+                ? "-"
+                : `${(balance - selectedAmount).toLocaleString("ko-KR")}원`}
+            </span>
+          </div>
+        )}
         <div className="min-h-10.75 flex-1" />
         <button
           type="button"
           disabled={!canInvest}
           onClick={() => {
-            if (canInvest && selectedAmount !== null) openConfirmation({ teamId: team.teamId, amount: selectedAmount, balanceAfter: balance - selectedAmount });
+            if (canInvest && selectedAmount !== null)
+              openConfirmation({
+                teamId: team.teamId,
+                amount: selectedAmount,
+                balanceAfter: balance - selectedAmount,
+              });
           }}
           className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-primary disabled:bg-primary/40"
         >
-          {canInvest && selectedAmount !== null ? `${selectedAmount / 10_000}만원 투자하기` : "지금은 투자할 수 없어요"}
+          {canInvest && selectedAmount !== null
+            ? `${selectedAmount / 10_000}만원 투자하기`
+            : "지금은 투자할 수 없어요"}
         </button>
       </div>
-
     </main>
   );
 }
