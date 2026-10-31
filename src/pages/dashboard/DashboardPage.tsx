@@ -67,7 +67,7 @@ export default function DashboardPage() {
   return (
     <main
       ref={containerRef}
-      className="flex h-dvh w-full items-center justify-center overflow-hidden bg-[#1f2329] font-['Noto_Sans_KR',sans-serif]"
+      className="relative flex h-dvh w-full items-center justify-center overflow-hidden bg-[#1f2329] font-['Noto_Sans_KR',sans-serif]"
     >
       {isInitialLoading ? (
         <LoadingOverlay variant="desktop" mode="initial" theme="dark" />
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         style={{ width: 1600 * scale, height: 900 * scale }}
       >
         <div
-          className="absolute top-0 left-0 flex h-225 w-[1600px] origin-top-left flex-col gap-1 overflow-hidden rounded-xl border-[1.5px] border-[#bdbdbd] bg-[#1f2329] px-8 py-6"
+          className="absolute top-0 left-0 flex h-225 w-[1600px] origin-top-left flex-col gap-1 overflow-hidden bg-[#1f2329] px-8 py-6"
           style={{ transform: `scale(${scale})` }}
         >
           <header className="flex h-[85.5px] shrink-0 items-center gap-6 pb-3 whitespace-nowrap">
@@ -246,20 +246,26 @@ export default function DashboardPage() {
               })}
             </div>
           </section>
-          {isPaused && (
-            <div
-              role="status"
-              aria-label="투자가 일시중지되었어요"
-              className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/30"
-            >
-              <img src={dashboardPaused} width={170} height={170} alt="" />
-            </div>
-          )}
           <p role="alert" className="sr-only">
             {fullscreenError}
           </p>
         </div>
       </div>}
+      {isPaused && query.data && (
+        <div
+          role="status"
+          aria-label="투자가 일시중지되었어요"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/30"
+        >
+          <img
+            src={dashboardPaused}
+            width={170}
+            height={170}
+            alt=""
+            style={{ transform: `scale(${scale})` }}
+          />
+        </div>
+      )}
     </main>
   );
 }
