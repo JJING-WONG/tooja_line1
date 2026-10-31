@@ -189,13 +189,9 @@ function TeamDetailContent({
             <dd
               className={`text-[#ce6161] ${hasInsufficientBalance ? "text-[15px] font-medium leading-5.25" : "text-[18px] font-bold leading-6.25"}`}
             >
-              {isPaused
-                ? "지금은 투자할 수 없어요"
-                : hasInsufficientBalance
-                  ? "투자 잔액이 부족해요"
-                  : selectedAmount === null
-                    ? "-"
-                    : `- ${selectedAmount.toLocaleString("ko-KR")}원`}
+              {selectedAmount === null
+                ? "-"
+                : `- ${selectedAmount.toLocaleString("ko-KR")}원`}
             </dd>
           </div>
         </dl>
@@ -224,9 +220,15 @@ function TeamDetailContent({
           }}
           className="h-13.5 shrink-0 rounded-lg bg-dark text-[16px] font-bold leading-5.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border disabled:border-dashed disabled:border-primary disabled:bg-primary/40"
         >
-          {canInvest && selectedAmount !== null
-            ? `${selectedAmount / 10_000}만원 투자하기`
-            : "지금은 투자할 수 없어요"}
+          {isPaused
+            ? "지금은 투자할 수 없어요"
+            : hasInsufficientBalance
+              ? "투자 잔액이 부족해요"
+              : isRefreshing
+                ? "투자 상태를 확인하고 있어요"
+                : canInvest && selectedAmount !== null
+                  ? `${selectedAmount / 10_000}만원 투자하기`
+                  : "금액을 선택해주세요"}
         </button>
       </div>
     </main>
