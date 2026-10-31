@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/investor/LoginPage";
+import WelcomePage from "./pages/investor/WelcomePage";
 import AdminLoginPage from "./pages/admin/LoginPage";
 import OverviewPage from "./pages/admin/OverviewPage";
 import InvestorListPage from "./pages/admin/InvestorListPage";
@@ -17,6 +18,7 @@ import InvestorProtectedRoute from "./features/auth/components/InvestorProtected
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<WelcomePage />} />
       {/* 투자자 */}
       <Route element={<InvestorProtectedRoute guestOnly />}>
         <Route path="/login" element={<LoginPage />} />
