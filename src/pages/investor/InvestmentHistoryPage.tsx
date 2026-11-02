@@ -58,7 +58,7 @@ export default function InvestmentHistoryPage() {
                 <li key={investment.investmentId} className="flex w-73.5 max-w-full flex-col gap-0.5 border-b border-[#eee] py-3.5">
                   <div className="flex h-5.25 items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[14px] font-medium leading-5">
-                      <span className="font-[Anta,sans-serif]">TEAM {teamNumber}</span> · {investment.serviceName}
+                      <span className="font-[Anta,sans-serif]">TEAM {teamNumber}</span>
                     </p>
                     <p className="shrink-0 text-[15px] font-bold leading-5.25 text-[#111]">
                       {investment.amount.toLocaleString("ko-KR")}원

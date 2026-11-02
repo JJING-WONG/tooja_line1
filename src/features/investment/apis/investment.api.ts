@@ -1,6 +1,7 @@
 import { apiClient } from "../../../apis/client";
 import type { components } from "../../../apis/schema";
 
+// Investment 응답은 teamId로 팀을 구분하며 서비스명 필드는 제공하지 않습니다.
 type InvestmentInput = components["schemas"]["InvestmentInput"];
 type InvestmentReceipt = components["schemas"]["InvestmentReceipt"];
 type RequestResult = components["schemas"]["RequestResult"];

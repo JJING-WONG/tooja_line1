@@ -140,7 +140,7 @@ export default function InvestorDetailPage() {
                 </td>
               </tr>
             )}
-            {transactions.map(({ investmentId, confirmedAt, teamId, serviceName, amount }) => (
+            {transactions.map(({ investmentId, confirmedAt, teamId, amount }) => (
               <tr
                 key={investmentId}
                 className="[&>td]:border-b [&>td]:border-[#e4e4e4] [&>td]:px-3.5 [&>td]:py-2.5 min-[1800px]:[&>td]:border-b-[1.5px] min-[1800px]:[&>td]:px-5.25 min-[1800px]:[&>td]:py-3.75"
@@ -149,7 +149,6 @@ export default function InvestorDetailPage() {
                 <td>
                   <div className="flex h-4.5 min-w-0 items-center min-[1800px]:h-6.75">
                     <span className="shrink-0 font-sans">TEAM {String(teamId).padStart(2, "0")}</span>
-                    <span title={serviceName} className="truncate whitespace-pre"> · {serviceName}</span>
                   </div>
                 </td>
                 <td>{won(amount)}</td>

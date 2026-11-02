@@ -2,6 +2,8 @@ import { accessBlockedMessage } from "../utils/authError";
 import InvestmentFlowProvider from "../../investment/components/InvestmentFlowProvider";
 import { Navigate, Outlet } from "react-router-dom";
 import { useInvestorSession } from "../hooks/useInvestorSession";
+import LoadingOverlay from "../../../components/ui/LoadingOverlay";
+import ErrorDialog from "../../../components/ui/ErrorDialog";
 
 export default function InvestorProtectedRoute({
   guestOnly = false,
@@ -11,21 +13,20 @@ export default function InvestorProtectedRoute({
   const session = useInvestorSession();
 
   if (session.isPending) {
-    return <p role="status">로그인 상태를 확인하고 있습니다.</p>;
+    return <main className="min-h-dvh bg-[#fafafa]"><LoadingOverlay mode="initial" /></main>;
   }
 
   if (session.isError) {
     return (
-      <div role="alert">
-        <p>{accessBlockedMessage(session.error) ?? "로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."}</p>
-        <button
-          type="button"
-          onClick={() => void session.refetch()}
-          disabled={session.isFetching}
-        >
-          다시 시도
-        </button>
-      </div>
+      <main className="min-h-dvh bg-[#fafafa]">
+        <ErrorDialog
+          title="로그인 상태를 확인하지 못했어요"
+          message={accessBlockedMessage(session.error) ?? "잠시 후 다시 시도해 주세요."}
+          confirmLabel="다시 시도"
+          isBusy={session.isFetching}
+          onConfirm={() => { if (!session.isFetching) void session.refetch(); }}
+        />
+      </main>
     );
   }
 

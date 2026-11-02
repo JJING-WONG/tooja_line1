@@ -11,7 +11,7 @@ try {
   const {apiClient}=await server.ssrLoadModule('/src/apis/client.ts');
   const {useDashboard,dashboardQueryKey:key,dashboardSnapshot}=await server.ssrLoadModule('/src/features/dashboard/hooks/useDashboard.ts');
   const {default:Page}=await server.ssrLoadModule('/src/pages/dashboard/DashboardPage.tsx');
-  const data={teams:Array.from({length:20},(_,i)=>({teamId:i+1,rank:i<2?1:i+1,serviceName:`실제 서비스 ${i+1}`,raisedAmount:i<2?700000:i===2?300000:0})),totalInvestedAmount:1700000,investedInvestorCount:3,snapshotVersion:1,asOf:'2026-10-27T00:05:06Z'};
+  const data={teams:Array.from({length:20},(_,i)=>({teamId:i+1,rank:i<2?1:i+1,raisedAmount:i<2?700000:i===2?300000:0})),totalInvestedAmount:1700000,investedInvestorCount:3,snapshotVersion:1,asOf:'2026-10-27T00:05:06Z'};
   function client(value){const c=new QueryClient();clients.push(c);if(value)c.setQueryData(key,value);return c;}
   function wrap(c,element){return renderToStaticMarkup(React.createElement(QueryClientProvider,{client:c},React.createElement(IsRestoringProvider,{value:true},element)));}
   function render(c){return wrap(c,React.createElement(Page));}
@@ -23,9 +23,11 @@ try {
   assert.deepEqual(next.changes[1],{rankChange:-1,amountIncrease:0});
   assert.deepEqual(dashboardSnapshot({...data,snapshotVersion:2},next).changes,{});
   const c=client(initial),html=render(c);
-  for(const text of ['실제 서비스 1','1,700,000원','3명','09:05:06','width:620px'])assert.ok(html.includes(text),text);
+  for(const text of ['TEAM 01','1,700,000원','3명','09:05:06',`width:${620 / 675 * 100}%`])assert.ok(html.includes(text),text);
   assert.equal((html.match(/role="row"/g)||[]).length,21);
-  assert.ok(!html.includes('데모 서비스'));
+  assert.equal((html.match(/role="columnheader"/g)||[]).length,5);
+  assert.equal((html.match(/role="cell"/g)||[]).length,100);
+  assert.ok(!html.includes('서비스'));
   const rankCells=[...html.matchAll(/role="cell" class="text-\[15px\][\s\S]*?<\/span><\/span>/g)].map(m=>m[0]);
   assert.ok(rankCells.length>=2);
   const pausedClient=client(initial);pausedClient.setQueryData(["public","investment-status"],{status:"PAUSED",revision:2,updatedAt:null});assert.ok(render(pausedClient).includes("투자가 일시중지되었어요"));pausedClient.setQueryData(["public","investment-status"],{status:"RUNNING",revision:3,updatedAt:null});assert.ok(!render(pausedClient).includes("투자가 일시중지되었어요"));
@@ -34,7 +36,7 @@ try {
   assert.ok(render(client()).includes('LoadingArc.png'));
   const error=new AxiosError('test',undefined,undefined,undefined,{status:500,headers:{},data:{}});
   const empty=client();options(empty);empty.getQueryCache().find({queryKey:key}).setState({status:'error',error,fetchStatus:'idle'});assert.ok(render(empty).includes('불러오지 못했어요'));
-  c.getQueryCache().find({queryKey:key}).setState({status:'error',error,fetchStatus:'idle'});const background=render(c);assert.ok(background.includes('실제 서비스 1')&&background.includes('재연결 중')&&background.includes('09:05:06'));assert.ok(!background.includes('불러오지 못했어요'));
+  c.getQueryCache().find({queryKey:key}).setState({status:'error',error,fetchStatus:'idle'});const background=render(c);assert.ok(background.includes('TEAM 01')&&background.includes('재연결 중')&&background.includes('09:05:06'));assert.ok(!background.includes('불러오지 못했어요'));
   const opts=options(c);assert.equal(opts.refetchInterval(c.getQueryCache().find({queryKey:key})),2000);assert.equal(opts.refetchIntervalInBackground,false);assert.equal(opts.retry,false);
   let calls=[];apiClient.defaults.adapter=async config=>{calls.push(config);return {data,status:200,headers:{},statusText:'OK',config};};
   await opts.queryFn({signal:new AbortController().signal});assert.equal(calls[0].url,'/public/dashboard');assert.equal(calls[0].timeout,15000);assert.ok(calls[0].signal);assert.equal(calls[0].headers['X-CSRF-Token'],undefined);

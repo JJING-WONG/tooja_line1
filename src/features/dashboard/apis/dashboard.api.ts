@@ -10,6 +10,7 @@ type InvestmentStatus = components["schemas"]["InvestmentStatus"];
  * 요청: 로그인·CSRF 불필요. 본문·쿼리 없음.
  * 응답: 200, Dashboard — { teams, totalInvestedAmount, investedInvestorCount, snapshotVersion, asOf }.
  * teams는 유치금 내림차순의 20개 팀이며 0원인 팀도 포함합니다.
+ * 각 팀은 teamId·rank·raisedAmount만 반환하며 서비스명은 제공하지 않습니다.
  * 공동 순위는 1·1·3이며 전체 0원이면 모두 1위입니다. 배열 인덱스 대신 rank를 사용합니다.
  * 순위 변화·최근 증가액은 호출부에서 이전 결과와 비교하고, 같은 snapshotVersion이면
  * 순위 변동 효과를 반복하지 않습니다. asOf는 조회 기준 시각(UTC)입니다.

@@ -16,7 +16,7 @@ try {
  const {default:Page}=await server.ssrLoadModule('/src/pages/admin/InvestorPerformancePage.tsx');
  const sessionKey=['auth','admin','session'],adminId='admin-1';
  const session={admin:{adminId,role:'ADMIN'},csrfToken:'admin-token'};
- const contribution={teamId:2,serviceName:'서버 서비스',teamRank:1,investedAmount:200000,pointsPerUnit:10,score:20};
+ const contribution={teamId:2,teamRank:1,investedAmount:200000,pointsPerUnit:10,score:20};
  const base={investorId:'inv-1',alias:'서버 참가자',kind:'PARTICIPANT',teamId:1,rank:1,score:20,contributions:[contribution]};
  const data={group:'ALL',asOf:'2026-10-28T00:05:06Z',snapshotVersion:3,count:4,items:[base,{...base,investorId:'inv-2',alias:'서버 운영팀',kind:'STAFF',teamId:null,contributions:[{...contribution,teamRank:9,investedAmount:500000,pointsPerUnit:2,score:10},{...contribution,teamId:3,teamRank:9,investedAmount:500000,pointsPerUnit:2,score:10}]},{...base,investorId:'inv-3',alias:'음수 참가자',rank:3,score:-5,contributions:[{...contribution,teamId:20,teamRank:15,investedAmount:100000,pointsPerUnit:-5,score:-5}]},{...base,investorId:'inv-4',alias:'미투자 참가자',rank:null,score:0,contributions:[]}]};
  function client(value=data,group='ALL'){const c=new QueryClient();clients.push(c);c.setQueryData(sessionKey,session);c.setQueryData(['auth','investor','session'],{keep:true});if(value)c.setQueryData(key(adminId,group),value);return c;}

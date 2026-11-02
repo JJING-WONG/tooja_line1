@@ -8,7 +8,7 @@ try {
   const { apiClient } = await server.ssrLoadModule("/src/apis/client.ts");
   const { resolveInvestment, createInvestmentRequestKey, InvestmentRequestKeyError, InvestmentFailure, readPendingInvestment, savePendingInvestment, clearPendingInvestment } = await server.ssrLoadModule("/src/features/investment/utils/investmentRequest.ts");
   const request = { investorId: "investor-a", requestKey: "12345678-1234-4123-8123-123456789abc", input: { teamId: 5, amount: 500000 } };
-  const receipt = { investment: { investmentId: "trade-1", teamId: 5, serviceName: "test", amount: 500000, confirmedAt: "2026-10-25T00:00:00Z" }, balanceAfterInvestment: 500000, snapshotVersion: 1 };
+  const receipt = { investment: { investmentId: "trade-1", teamId: 5, amount: 500000, confirmedAt: "2026-10-25T00:00:00Z" }, balanceAfterInvestment: 500000, snapshotVersion: 1 };
   const httpError = (status, code, headers = {}) => new AxiosError("test error", undefined, undefined, undefined, { status, data: { error: { code } }, headers });
   let calls, tokens, checking;
   function scenario(steps) {

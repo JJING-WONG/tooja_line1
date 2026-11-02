@@ -34,7 +34,7 @@
 | — | `/admin/performance` | 투자자 성과 순위 | PC | 관리자 |
 | D01 | `/dashboard` | 공개 대시보드 | PC 16:9 | 공개 |
 
-- `InvestorProtectedRoute`는 투자자 세션을 확인한다. 미인증이면 `/login`, 이미 로그인한 사용자가 P01에 접근하면 `/invest`로 이동한다.
+- `InvestorProtectedRoute`는 투자자 세션을 확인한다. 세션 조회 중에는 공통 모바일 로딩, 조회 실패 시 재시도 가능한 ErrorDialog를 표시한다. 미인증이면 `/login`, 이미 로그인한 사용자가 P01에 접근하면 `/invest`로 이동한다.
 - `AdminProtectedRoute`는 관리자 세션을 확인한다. 미인증이면 `/admin/login`, 이미 로그인한 사용자가 A01에 접근하면 `/admin`으로 이동한다.
 - 투자자와 관리자 보호 영역은 독립적이다. 운영팀 투자자(`STAFF`)도 관리자 인증을 별도로 받아야 한다.
 - 거래 소유 여부는 서버가 검증한다. P04는 없는 거래·타인 거래의 동일한 404 응답을 접근 불가 UI로 처리한다.
@@ -97,6 +97,8 @@ scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 | `features/*/components` | 기능 전용 UI와 기능 범위의 공통 상태 제공 |
 | `features/*/utils` | 요청 결과 복구·재요청 대기 등 UI와 분리된 처리 |
 | `components/ui` | 특정 기능에 종속되지 않는 공통 표현·접근성 처리 |
+
+최신 응답의 Team·Investment·RankingRow·ScoreContribution은 서비스명(`serviceName`)을 제공하지 않는다. 팀은 `teamId`로 표시하며 거래·성과 화면은 TEAM 번호, D01은 서비스 열 없는 5열 표를 사용한다. 팀 소개 `description`은 유지한다.
 
 타입은 `schema.d.ts`의 `components`·`operations`를 우선 사용하고 필요한 타입 별칭은 사용 파일 가까이에 둔다. 폴더는 실제 필요할 때 추가하며 별도 `types` 계층을 일괄 생성하지 않는다.
 

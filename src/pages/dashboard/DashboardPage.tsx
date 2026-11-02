@@ -12,7 +12,7 @@ const updatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
 });
 
-const columns = "grid-cols-[56px_150px_220px_minmax(0,1fr)_170px_170px]";
+const columns = "grid-cols-[56px_150px_minmax(0,1fr)_170px_170px]";
 
 export default function DashboardPage() {
   const query = useDashboard();
@@ -152,7 +152,6 @@ export default function DashboardPage() {
               {[
                 "순위",
                 "팀",
-                "서비스",
                 "유치금 그래프 (현재 1위 기준 상대 길이)",
                 "유치금",
                 "순위 변화",
@@ -160,18 +159,19 @@ export default function DashboardPage() {
                 <span
                   key={label}
                   role="columnheader"
-                  className={index > 3 ? "text-right" : ""}
+                  className={index > 2 ? "text-right" : ""}
                 >
                   {label}
                 </span>
               ))}
             </div>
             <div role="rowgroup" className="flex flex-col gap-0.75">
-              {ranking.map(({ teamId: team, raisedAmount: amount, rank, serviceName }) => {
+              {ranking.map(({ teamId: team, raisedAmount: amount, rank }) => {
                 const change = query.data?.changes[team]?.rankChange ?? 0;
                 const increase = query.data?.changes[team]?.amountIncrease ?? 0;
                 const highlighted = increase > 0;
-                const bar = topAmount > 0 ? (amount / topAmount) * 620 : 0;
+                // 기존 1위 막대 비율(620/675)은 유지하며 확장된 트랙에 맞춥니다.
+                const bar = topAmount > 0 ? (amount / topAmount) * (620 / 675) * 100 : 0;
                 return (
                   <div
                     key={team}
@@ -194,12 +194,6 @@ export default function DashboardPage() {
                     >
                       TEAM {String(team).padStart(2, "0")}
                     </span>
-                    <span
-                      role="cell"
-                      className="truncate text-[13px] leading-4.5 text-[#9ca3af]"
-                    >
-                      {serviceName}
-                    </span>
                     <div
                       role="cell"
                       aria-label={`유치금 ${amount.toLocaleString("ko-KR")}원 그래프`}
@@ -207,7 +201,7 @@ export default function DashboardPage() {
                     >
                       <div
                         className={`h-3 rounded ${highlighted ? "bg-primary" : "bg-secondary"}`}
-                        style={{ width: bar }}
+                        style={{ width: `${bar}%` }}
                       />
                     </div>
                     <span
@@ -246,11 +240,15 @@ export default function DashboardPage() {
               })}
             </div>
           </section>
-          <p role="alert" className="sr-only">
-            {fullscreenError}
-          </p>
         </div>
       </div>}
+      {fullscreenError && (
+        <div role="alert" className="absolute bottom-6 left-1/2 z-20 w-[440px] max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl border border-[#4b5563] bg-[#2a2f36] px-5 py-4 text-center text-sm leading-6 text-white shadow-lg">
+          <p className="font-bold">전체화면을 열지 못했어요</p>
+          <p className="mt-1 text-[#d1d5db]">브라우저의 전체화면 기능을 이용해 주세요.</p>
+          <button type="button" onClick={() => setFullscreenError("")} className="mt-3 min-h-11 rounded-lg bg-white px-6 py-2 font-bold text-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">확인</button>
+        </div>
+      )}
       {isPaused && query.data && (
         <div
           role="status"

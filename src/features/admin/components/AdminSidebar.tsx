@@ -81,7 +81,7 @@ export default function AdminSidebar({
             {isExpanded ? "투자 중단" : "투자 종료"}
           </button>
         </div>
-        {logoutError && <p role="alert" className="text-sm leading-5 text-[#b42318]">{logoutError}</p>}
+        {logoutError && <div role="alert" className="rounded-lg border border-[#f6caca] bg-[#fdecec] px-3 py-3 text-sm leading-5 text-[#b42318]"><p className="font-bold">로그아웃하지 못했어요</p><p className="mt-1 wrap-break-word">{logoutError}</p></div>}
         <button
           type="button"
           onClick={onLogout}

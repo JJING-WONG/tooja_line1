@@ -70,8 +70,7 @@ export default function InvestmentSuccessPage() {
               투자 팀
             </dt>
             <dd className="min-w-0 text-right text-[13px] font-bold leading-4.5">
-              <span className="font-[Anta,sans-serif]">{teamLabel}</span> ·{" "}
-              {investment?.serviceName}
+              <span className="font-[Anta,sans-serif]">{teamLabel}</span>
             </dd>
           </div>
           <div className="flex h-5.25 items-center justify-between">

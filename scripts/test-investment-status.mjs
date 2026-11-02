@@ -16,7 +16,7 @@ try {
  const running={status:'RUNNING',revision:1,updatedAt:null},paused={status:'PAUSED',revision:2,updatedAt:'2026-10-27T00:00:00Z'};
  const sessionKey=['auth','investor','session'];
  const session={investor:{investorId:'inv-1',alias:'이름',kind:'PARTICIPANT',teamId:1,issuedAmount:1000000,investedAmount:0,balance:1000000,spendingStatus:'UNSPENT'},csrfToken:'token'};
- const team={teamId:2,serviceName:'서비스',description:'소개 내용',investmentState:'AVAILABLE',myInvestmentAmount:0,allowedAmounts:[100000,200000,300000,400000,500000,600000,700000]};
+ const team={teamId:2,description:'소개 내용',investmentState:'AVAILABLE',myInvestmentAmount:0,allowedAmounts:[100000,200000,300000,400000,500000,600000,700000]};
  function client(status=running){const c=new QueryClient();clients.push(c);c.setQueryData(sessionKey,session);if(status)c.setQueryData(key,status);c.setQueryData(['investor','team','inv-1',2],{investor:session.investor,team,investmentStatus:running,asOf:'2026-10-27T00:00:00Z'});c.setQueryData(['investor','teams','inv-1'],{investor:session.investor,teams:[team],investmentStatus:running,asOf:'2026-10-27T00:00:00Z'});return c;}
  function wrap(c,element,path='/invest/teams/2'){return renderToStaticMarkup(React.createElement(QueryClientProvider,{client:c},React.createElement(IsRestoringProvider,{value:true},React.createElement(MemoryRouter,{initialEntries:[path]},element))));}
  function teamHtml(c){return wrap(c,React.createElement(InvestmentFlowContext,{value:()=>{}},React.createElement(Routes,null,React.createElement(Route,{path:'/invest/teams/:teamId',element:React.createElement(TeamPage)}))));}

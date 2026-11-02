@@ -52,12 +52,13 @@ export default function HomePage() {
           </nav>
         </header>
         {errorMessage && (
-          <p role="alert" className="mt-3 text-sm text-[#f68b8b]">
-            {errorMessage}
-          </p>
+          <div role="alert" className="rounded-xl border border-[#f6caca] bg-[#fdecec] px-4 py-3 text-[13px] leading-5 text-[#b42318]">
+            <p className="font-bold">로그아웃하지 못했어요</p>
+            <p className="mt-1 wrap-break-word">{errorMessage}</p>
+          </div>
         )}
         {teamsQuery.isError && (
-          <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
+          <div role="alert" className="rounded-xl border border-primary/20 bg-white p-4 text-sm leading-6 text-[#777]">
             <p>
               {accessBlockedMessage(teamsQuery.error) ?? (home
                 ? "최신 정보를 불러오지 못했습니다. 이전 조회 결과를 표시합니다."
@@ -67,16 +68,16 @@ export default function HomePage() {
               type="button"
               onClick={() => void teamsQuery.refetch()}
               disabled={teamsQuery.isFetching || isPending}
-              className="mt-2 cursor-pointer rounded text-secondary underline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
+              className="mt-3 min-h-11 w-full cursor-pointer rounded-lg bg-dark px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
             >
               {teamsQuery.isFetching ? "불러오는 중…" : "다시 시도"}
             </button>
           </div>
         )}
         {statusQuery.isError && (
-          <div role="alert" className="rounded-lg bg-white p-4 text-sm text-[#777]">
+          <div role="alert" className="rounded-xl border border-primary/20 bg-white p-4 text-sm leading-6 text-[#777]">
             <p>{accessBlockedMessage(statusQuery.error) ?? "투자 접수 상태를 갱신하지 못했어요. 잠시 후 다시 확인해 주세요."}</p>
-            <button type="button" disabled={statusQuery.isFetching} onClick={() => void statusQuery.refetch()} className="mt-2 cursor-pointer rounded text-secondary underline disabled:opacity-60">다시 시도</button>
+            <button type="button" disabled={statusQuery.isFetching} onClick={() => void statusQuery.refetch()} className="mt-3 min-h-11 w-full cursor-pointer rounded-lg bg-dark px-4 py-2 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60">다시 시도</button>
           </div>
         )}
         {home && (
