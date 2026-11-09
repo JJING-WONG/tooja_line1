@@ -98,7 +98,7 @@ scripts/                           # 로컬 응답·캐시·요청 흐름 검증
 | `features/*/utils` | 요청 결과 복구·재요청 대기 등 UI와 분리된 처리 |
 | `components/ui` | 특정 기능에 종속되지 않는 공통 표현·접근성 처리 |
 
-최신 응답의 Team·Investment·RankingRow·ScoreContribution은 서비스명(`serviceName`)을 제공하지 않는다. 팀은 `teamId`로 표시하며 거래·성과 화면은 TEAM 번호, D01은 서비스 열 없는 5열 표를 사용한다. 팀 소개 `description`은 유지한다.
+최신 응답의 Team·Investment·RankingRow·ScoreContribution은 서비스명(`serviceName`)을 제공하지 않는다. 팀은 `teamId`로 표시하며 거래·성과 화면은 TEAM 번호, D01은 서비스 열 없는 5열 표를 사용한다. 팀 소개 `description`은 행사에서 수집하지 않으므로 화면에 표시하지 않는다(응답 필드는 명세에 남아 있어도 사용하지 않음).
 
 타입은 `schema.d.ts`의 `components`·`operations`를 우선 사용하고 필요한 타입 별칭은 사용 파일 가까이에 둔다. 폴더는 실제 필요할 때 추가하며 별도 `types` 계층을 일괄 생성하지 않는다.
 

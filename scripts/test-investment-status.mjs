@@ -22,7 +22,7 @@ try {
  function teamHtml(c){return wrap(c,React.createElement(InvestmentFlowContext,{value:()=>{}},React.createElement(Routes,null,React.createElement(Route,{path:'/invest/teams/:teamId',element:React.createElement(TeamPage)}))));}
  function capture(c){function Harness(){useInvestmentStatus();return null;}wrap(c,React.createElement(Harness));return c.getQueryCache().find({queryKey:key}).options;}
  assert.equal(latestInvestmentStatus(paused,running),paused);assert.equal(latestInvestmentStatus(running,paused),paused);
- const p=client(paused);assert.ok(teamHtml(p).includes('소개 내용'));assert.equal((teamHtml(p).match(/disabled=""/g)||[]).length,8);
+ const p=client(paused);assert.ok(!teamHtml(p).includes('소개 내용'));assert.equal((teamHtml(p).match(/disabled=""/g)||[]).length,8);
  assert.equal((teamHtml(client(running)).match(/disabled=""/g)||[]).length,1);
  const home=wrap(p,React.createElement(Home),'/invest');assert.ok(home.includes('일시정지되어 있어요'));
  const failed=client(running);capture(failed);failed.getQueryCache().find({queryKey:key}).setState({status:'error',error:new Error('offline'),fetchStatus:'idle'});const failedHtml=teamHtml(failed);assert.ok(failedHtml.includes('접수 상태를 확인하지 못했어요'));assert.equal((failedHtml.match(/disabled=""/g)||[]).length,8);
