@@ -143,9 +143,6 @@ function TeamDetailContent({
             <h1 className="whitespace-nowrap text-[30px] leading-10.5 text-white font-[Anta, sans-serif]">
               TEAM {String(team.teamId).padStart(2, "0")}
             </h1>
-            <p className="h-7.5 text-[12px] leading-[16.8px] text-white">
-              {team.description}
-            </p>
             <p className="text-[10px] leading-3.5 text-[#eee]">
               <span className="font-bold text-[#ffcabe]">[주의]</span>{" "}
               <strong>팀 당 한 번만 투자할 수 있어요</strong>
