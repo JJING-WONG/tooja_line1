@@ -9,10 +9,6 @@ import { useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmen
 import { useDashboardAnimation } from "../../features/dashboard/hooks/useDashboardAnimation";
 import { useDashboard } from "../../features/dashboard/hooks/useDashboard";
 
-const updatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-});
-
 const columns = "grid-cols-[56px_150px_minmax(0,1fr)_170px_170px]";
 
 export default function DashboardPage() {
@@ -22,15 +18,13 @@ export default function DashboardPage() {
   const isPaused = statusQuery.data?.status === "PAUSED";
   const isInitialLoading = !query.data && !query.isError;
   const isInitialError = !query.data && query.isError;
-  const connectionStatus = query.isError || statusQuery.isError ? "reconnecting" : "connected";
-  const lastUpdatedAt = query.data ? updatedAtFormatter.format(new Date(query.data.asOf)) : "—";
   const ranking = query.data?.teams ?? [];
   const topAmount = Math.max(0, ...ranking.map((team) => team.raisedAmount));
   const containerRef = useRef<HTMLElement>(null);
   const [scale, setScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
-  const rowsRef = useDashboardAnimation(query.data, scale, isPaused || connectionStatus === "reconnecting", query.dataUpdatedAt);
+  const rowsRef = useDashboardAnimation(query.data, scale, isPaused || query.isError || statusQuery.isError, query.dataUpdatedAt);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -122,16 +116,6 @@ export default function DashboardPage() {
                 </dd>
               </div>
             </dl>
-            {/* 갱신 실패 시 기존 데이터와 마지막 성공 조회 시각을 유지합니다. */}
-            <div
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-              className={`shrink-0 rounded-full bg-[#2a2f36] px-3.5 py-2 text-[13px] leading-4.5 ${connectionStatus === "reconnecting" ? "w-65 text-[#fca5a5]" : isPaused ? "bg-[#2a2f36]/50 text-[#ffcb91]" : "w-36.75 text-[#a7f3d0]"}`}
-            >
-              <p>{connectionStatus === "reconnecting" ? (blockedMessage ? "● 요청 차단 · 접속 환경 확인" : "● 연결이 끊겼어요 · 재연결 중") : isPaused ? `● 투자 일시중지됨 · ${lastUpdatedAt}` : `● 연결됨 · ${lastUpdatedAt}`}</p>
-              {connectionStatus === "reconnecting" && <p className="text-xs leading-4.25 text-[#9ca3af]">마지막 갱신 {lastUpdatedAt}</p>}
-            </div>
             <button
               type="button"
               onClick={toggleFullscreen}
