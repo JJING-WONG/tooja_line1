@@ -64,7 +64,7 @@ export function useDashboard() {
     staleTime: 0,
     retry: false,
     retryOnMount: false,
-    refetchInterval: (query) => Math.max(2000, cooldownUntil(query.state.error, query.state.errorUpdatedAt) - Date.now()),
+    refetchInterval: (query) => Math.max(5000, cooldownUntil(query.state.error, query.state.errorUpdatedAt) - Date.now()),
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

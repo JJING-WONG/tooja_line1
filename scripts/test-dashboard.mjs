@@ -31,13 +31,13 @@ try {
   const rankCells=[...html.matchAll(/role="cell" class="text-\[15px\][\s\S]*?<\/span><\/span>/g)].map(m=>m[0]);
   assert.ok(rankCells.length>=2);
   const pausedClient=client(initial);pausedClient.setQueryData(["public","investment-status"],{status:"PAUSED",revision:2,updatedAt:null});assert.ok(render(pausedClient).includes("투자가 일시중지되었어요"));pausedClient.setQueryData(["public","investment-status"],{status:"RUNNING",revision:3,updatedAt:null});assert.ok(!render(pausedClient).includes("투자가 일시중지되었어요"));
-  const changedHtml=render(client(next));assert.ok(changedHtml.includes('+500,000원 갱신'));assert.ok(changedHtml.includes('▲ 2'));assert.ok(changedHtml.includes('▼ 1'));
+  const changedHtml=render(client(next));assert.ok(changedHtml.includes('data-team-id="3"')); assert.ok(changedHtml.includes('▲ 2'));assert.ok(changedHtml.includes('▼ 1'));
   const zero=dashboardSnapshot({...data,teams:data.teams.map(t=>({...t,rank:1,raisedAmount:0})),totalInvestedAmount:0,investedInvestorCount:0});assert.ok(render(client(zero)).includes('width:0'));
   assert.ok(render(client()).includes('LoadingArc.png'));
   const error=new AxiosError('test',undefined,undefined,undefined,{status:500,headers:{},data:{}});
   const empty=client();options(empty);empty.getQueryCache().find({queryKey:key}).setState({status:'error',error,fetchStatus:'idle'});assert.ok(render(empty).includes('불러오지 못했어요'));
   c.getQueryCache().find({queryKey:key}).setState({status:'error',error,fetchStatus:'idle'});const background=render(c);assert.ok(background.includes('TEAM 01')&&background.includes('재연결 중')&&background.includes('09:05:06'));assert.ok(!background.includes('불러오지 못했어요'));
-  const opts=options(c);assert.equal(opts.refetchInterval(c.getQueryCache().find({queryKey:key})),2000);assert.equal(opts.refetchIntervalInBackground,false);assert.equal(opts.retry,false);
+  const opts=options(c);assert.equal(opts.refetchInterval(c.getQueryCache().find({queryKey:key})),5000);assert.equal(opts.refetchIntervalInBackground,false);assert.equal(opts.retry,false);
   let calls=[];apiClient.defaults.adapter=async config=>{calls.push(config);return {data,status:200,headers:{},statusText:'OK',config};};
   await opts.queryFn({signal:new AbortController().signal});assert.equal(calls[0].url,'/public/dashboard');assert.equal(calls[0].timeout,15000);assert.ok(calls[0].signal);assert.equal(calls[0].headers['X-CSRF-Token'],undefined);
   for(const status of [429,503]){

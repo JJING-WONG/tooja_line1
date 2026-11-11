@@ -6,6 +6,7 @@ import dashboardLogo from "../../assets/DashboardLogo.png";
 import dashboardPaused from "../../assets/DashboardPaused.svg";
 import { useInvestmentStatus } from "../../features/dashboard/hooks/useInvestmentStatus";
 
+import { useDashboardAnimation } from "../../features/dashboard/hooks/useDashboardAnimation";
 import { useDashboard } from "../../features/dashboard/hooks/useDashboard";
 
 const updatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [scale, setScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
+  const rowsRef = useDashboardAnimation(query.data, scale, isPaused || connectionStatus === "reconnecting", query.dataUpdatedAt);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -165,18 +167,17 @@ export default function DashboardPage() {
                 </span>
               ))}
             </div>
-            <div role="rowgroup" className="flex flex-col gap-0.75">
+            <div ref={rowsRef} role="rowgroup" className="dashboard-rows flex flex-col gap-0.75">
               {ranking.map(({ teamId: team, raisedAmount: amount, rank }) => {
                 const change = query.data?.changes[team]?.rankChange ?? 0;
-                const increase = query.data?.changes[team]?.amountIncrease ?? 0;
-                const highlighted = increase > 0;
                 // 기존 1위 막대 비율(620/675)은 유지하며 확장된 트랙에 맞춥니다.
                 const bar = topAmount > 0 ? (amount / topAmount) * (620 / 675) * 100 : 0;
                 return (
                   <div
                     key={team}
+                    data-team-id={team}
                     role="row"
-                    className={`${columns} grid h-8 items-center gap-3 rounded-md px-4 whitespace-nowrap ${highlighted ? "border-[1.5px] border-[#f3f4f6] bg-[#3a4048]" : "bg-[#262b31]"}`}
+                    className={`${columns} dashboard-row relative grid h-8 items-center gap-3 rounded-md bg-[#262b31] px-4 whitespace-nowrap`}
                   >
                     <span
                       role="cell"
@@ -200,7 +201,7 @@ export default function DashboardPage() {
                       className="h-3 overflow-hidden rounded bg-[#33393f]"
                     >
                       <div
-                        className={`h-3 rounded ${highlighted ? "bg-primary" : "bg-secondary"}`}
+                        className="dashboard-bar h-3 rounded bg-secondary"
                         style={{ width: `${bar}%` }}
                       />
                     </div>
@@ -214,11 +215,7 @@ export default function DashboardPage() {
                       role="cell"
                       className="flex items-center justify-end gap-2 text-[13px] leading-4.5 font-bold"
                     >
-                      {highlighted && (
-                        <span className="w-24.5 rounded-full bg-[#f3f4f6] py-0.5 text-center text-[11px] leading-3.75 text-[#111]">
-                          +{increase.toLocaleString("ko-KR")}원 갱신
-                        </span>
-                      )}
+                      <span data-increase className="dashboard-increase w-24.5 rounded-full bg-[#f3f4f6] py-0.5 text-center text-[11px] leading-3.75 text-[#111]" />
                       <span
                         className={
                           change > 0
